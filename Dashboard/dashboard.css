@@ -1,0 +1,335 @@
+body {
+    margin: 0;
+    max-height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    background-color: #111727;
+    box-sizing: border-box;
+    color: white;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+/*Titulo*/
+#titleDashboard {
+    grid-row: 1 / 2;
+    justify-self: center;
+    margin: 2rem 0 0 0;
+    font-size: 2em;
+    font-weight: 400;
+}
+
+/*Contenedor que contiene todos los elementos de grid de nuestro dashboard*/
+
+.contenedor {
+    display: grid;
+    height: 80vh;
+    padding: 2.5vw;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(5, 1fr);
+    gap: 8px;
+
+    grid-template-areas:
+        "logo search-bar search-bar user-panel user-panel"
+        "sidebar main-content main-content main-content main-content"
+        "sidebar main-content main-content main-content main-content"
+        "sidebar main-content main-content main-content main-content"
+        "sidebar main-content main-content main-content main-content";
+}
+
+
+/*Elementos del grid principal*/
+.sidebar {
+    grid-area: sidebar;
+    /*background-color: aliceblue; */
+    display: flex;
+    flex-direction: column;
+    gap: 1.1em;
+    padding: 1.1em;
+    white-space: nowrap;
+}
+
+
+.search-bar {
+    grid-area: search-bar;
+    background-color: #1a2236;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.user-panel {
+    grid-area: user-panel;
+    background-color: #1a2236;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.main-content {
+    grid-area: main-content;
+    background-color: #1a2236;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.main-content>h1 {
+    font-weight: 300;
+}
+
+.sidebar,
+.main-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-content img {
+    max-width: 90%;
+    object-fit: contain;
+    object-fit: cover;
+    border-radius: 8px;
+}
+
+.graph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/*Fin elementos del grid*/
+
+/*Area del logo*/
+.logo {
+    grid-area: logo;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /*background-color: #2a3a5f;*/
+    border-radius: 8px;
+    padding: 1.1em;
+}
+
+.logo-icon {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+/*Barra de navegacion lateral con iconos que linkan a otras funcionalidades*/
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+    width: 100%;
+    border-radius: 8px;
+}
+
+.active {
+    background-color: #2a3a5f;
+}
+
+.icon {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+.sidebar-item:hover {
+    background-color: #1f2a40;
+    transform: scale(1.05);
+    transition: 0.2s;
+}
+
+/*Fin elementos navbar*/
+
+/* Barra de búsqueda */
+.search-bar {
+    grid-area: search-bar;
+    display: flex;
+    align-items: center;
+    background-color: #1a2236;
+    border-radius: 8px;
+    padding: 5px 10px;
+    gap: 10px;
+}
+
+.search-input {
+    flex: 1;
+    /* ocupa todo el espacio disponible */
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    background-color: #2a334b;
+    color: white;
+    font-size: 1em;
+}
+
+.search-input::placeholder {
+    color: #bbb;
+}
+
+.search-button {
+    background-color: #2a3a5f;
+    border: none;
+    border-radius: 6px;
+    padding: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-button:hover {
+    background-color: #3b4a70;
+}
+
+.search-button img {
+    width: 20px;
+    height: 20px;
+}
+
+/* Panel de usuario */
+.user-panel {
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    /*Cajon de usuario a la derecha de su contenedor*/
+    gap: 0.8em;
+    /*gap entre imagen y avatar*/
+    background-color: #1a2236;
+    border-radius: 0.5em;
+    padding: 0 2em;
+    height: auto;
+}
+
+.user-avatar {
+    width: 2.5em;
+    height: 2.5em;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: bold;
+    font-size: 1em;
+}
+
+.logout-button {
+    margin-top: 0.3em;
+    padding: 0.3em 0.6em;
+    background-color: #2a3a5f;
+    color: white;
+    border: none;
+    border-radius: 0.3em;
+    cursor: pointer;
+    font-size: 0.85em;
+}
+
+.logout-button:hover {
+    background-color: #3b4a70;
+}
+
+/*Fin panel de usuario*/
+
+/*Media queries*/
+/* Pantallas medianas */
+@media (max-width: 1024px) {
+    .contenedor {
+        grid-template-columns: 1fr 3fr;
+        grid-template-rows: auto 1fr 1fr 1fr 1fr;
+        grid-template-areas:
+            "logo user-panel"
+            "search-bar search-bar"
+            "sidebar main-content"
+            "sidebar main-content"
+            "sidebar main-content";
+        padding: 1.5vw;
+    }
+
+    .logo-icon {
+        width: 30px;
+        height: 30px;
+    }
+
+    .search-input {
+        font-size: 0.9em;
+    }
+
+    .user-avatar {
+        width: 2em;
+        height: 2em;
+    }
+
+    #titleDashboard {
+        font-size: 1.8em;
+        margin-top: 1.5rem;
+    }
+}
+
+/* Pantallas pequeñas/móviles */
+@media (max-width: 600px) {
+    body {
+        grid-template-rows: auto 1fr;
+    }
+
+    .contenedor {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto auto auto;
+        grid-template-areas:
+            "logo"
+            "user-panel"
+            "search-bar"
+            "sidebar"
+            "main-content"
+            "main-content";
+        padding: 1rem;
+        gap: 1.2em;
+        height: auto;
+    }
+
+    .sidebar {
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 0.75em;
+        margin: 0 1.5em;
+    }
+
+    .sidebar-item {
+        flex: 0 0 auto;
+        /* para mantener items en fila */
+        margin-right: 0.5em;
+        padding: 0.5em;
+        scale: 85%;
+    }
+
+    .search-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-input,
+    .search-button {
+        width: 100%;
+        margin: 2px 0;
+    }
+
+    .main-content img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .search-bar,
+    .search-input,
+    .search-button {
+        box-sizing: border-box;
+    }
+
+    #titleDashboard {
+        font-size: 1.5em;
+        margin-top: 1rem;
+    }
+}
