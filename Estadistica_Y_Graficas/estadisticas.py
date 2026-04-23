@@ -3,7 +3,7 @@
 import pandas as pd
 from sqlalchemy import create_engine
 
-engine = create_engine("sqlite:///baseDatos.db")
+engine = create_engine("sqlite:///baseConjunta.db")
 
 
 def query(sql: str) -> pd.DataFrame:
@@ -24,10 +24,9 @@ def rendimiento_vs_media_posicion() -> list:
     """
 
     df = query("""
-        SELECT j.nombre, j.posicion,
-               e.goles, e.asistencias, e.partidos_jugados
-        FROM EstadisticasJugador e
-        JOIN Jugador j ON e.id_jugador = j.id_jugador
+        SELECT jugador AS nombre, posicion,
+               goles, asistencias, partidos_jugados AS partidos_jugados
+        FROM Futbol
     """)
 
     # transform("mean") calcula la media por posición y la asigna
@@ -44,6 +43,7 @@ def rendimiento_vs_media_posicion() -> list:
 
     return df.to_dict(orient="records")
 
+
 def ranking_goleadores() -> list:
     """
     Devuelve el ranking de jugadores ordenados por goles totales.
@@ -52,14 +52,11 @@ def ranking_goleadores() -> list:
     """
 
     df = query("""
-        SELECT j.nombre, j.posicion, eq.nombre AS equipo,
-               SUM(e.goles) AS goles_totales,
-               SUM(e.asistencias) AS asistencias_totales,
-               SUM(e.partidos_jugados) AS partidos_totales
-        FROM EstadisticasJugador e
-        JOIN Jugador j ON e.id_jugador = j.id_jugador
-        JOIN Equipo eq ON e.id_equipo = eq.id_equipo
-        GROUP BY e.id_jugador
+        SELECT jugador AS nombre, posicion, equipo,
+               goles AS goles_totales,
+               asistencias AS asistencias_totales,
+               partidos_jugados AS partidos_totales
+        FROM Futbol
         ORDER BY goles_totales DESC
     """)
 
@@ -77,16 +74,15 @@ def estadisticas_por_equipo() -> list:
     """
 
     df = query("""
-        SELECT eq.nombre AS equipo,
-               SUM(e.goles) AS goles_totales,
-               SUM(e.asistencias) AS asistencias_totales,
-               SUM(e.partidos_jugados) AS partidos_totales,
-               SUM(e.tarjetas_amarillas) AS tarjetas_amarillas,
-               SUM(e.tarjetas_rojas) AS tarjetas_rojas,
-               COUNT(DISTINCT e.id_jugador) AS num_jugadores
-        FROM EstadisticasJugador e
-        JOIN Equipo eq ON e.id_equipo = eq.id_equipo
-        GROUP BY e.id_equipo
+        SELECT equipo,
+               SUM(goles) AS goles_totales,
+               SUM(asistencias) AS asistencias_totales,
+               SUM(partidos_jugados) AS partidos_totales,
+               SUM(tarjetas_amarillas) AS tarjetas_amarillas,
+               SUM(tarjetas_rojas) AS tarjetas_rojas,
+               COUNT(id_jugador) AS num_jugadores
+        FROM Futbol
+        GROUP BY equipo
         ORDER BY goles_totales DESC
     """)
 
@@ -107,13 +103,11 @@ def eficiencia_goleadora() -> list:
     """
 
     df = query("""
-        SELECT j.nombre, j.posicion,
-               SUM(e.goles) AS goles_totales,
-               SUM(e.partidos_jugados) AS partidos_totales
-        FROM EstadisticasJugador e
-        JOIN Jugador j ON e.id_jugador = j.id_jugador
-        GROUP BY e.id_jugador
-        HAVING partidos_totales >= 5
+        SELECT jugador AS nombre, posicion,
+               goles AS goles_totales,
+               partidos_jugados AS partidos_totales
+        FROM Futbol
+        WHERE partidos_jugados >= 5
         ORDER BY goles_totales DESC
     """)
 
@@ -126,6 +120,7 @@ def eficiencia_goleadora() -> list:
 
     return df.to_dict(orient="records")
 
+
 # EMPLEADOS
 
 def distribucion_salarial_por_cargo() -> list:
@@ -136,10 +131,8 @@ def distribucion_salarial_por_cargo() -> list:
     """
 
     df = query("""
-        SELECT c.nombre_cargo, se.salario_real
-        FROM SalarioEmpleado se
-        JOIN Empleado e ON se.id_empleado = e.id_empleado
-        JOIN Cargo c ON e.id_cargo = c.id_cargo
+        SELECT cargo AS nombre_cargo, salario_real AS salario_real
+        FROM Empleados
     """)
 
     # agg() calcula varias estadísticas a la vez por cargo
@@ -165,18 +158,14 @@ def distribucion_salarial_por_cargo() -> list:
 def ranking_salarial() -> list:
     """
     Devuelve todos los empleados ordenados de mayor a menor
-    salario real, incluyendo su cargo, salario base y
-    posición en el ranking dentro de su propio cargo.
+    salario, incluyendo su cargo y posición en el ranking
+    dentro de su propio cargo.
     """
 
     df = query("""
-        SELECT e.nombre, e.apellido,
-               c.nombre_cargo, c.salario_base,
-               AVG(se.salario_real) as salario_real_medio
-        FROM Empleado e
-        JOIN Cargo c ON e.id_cargo = c.id_cargo
-        JOIN SalarioEmpleado se ON se.id_empleado = e.id_empleado
-        GROUP BY e.id_empleado
+        SELECT empleado AS nombre, cargo AS nombre_cargo,
+               salario_real AS salario_real_medio
+        FROM Empleados
     """)
 
     df = df.sort_values("salario_real_medio", ascending=False)
@@ -192,39 +181,38 @@ def ranking_salarial() -> list:
     df["total_en_cargo"] = df.groupby("nombre_cargo")["nombre_cargo"] \
                              .transform("count")
 
-    # Diferencia en euros respecto al salario base del cargo
-    df["diferencia_vs_base"] = (df["salario_real_medio"] - df["salario_base"]).round(2)
-
     return df.to_dict(orient="records")
 
 
 def comparativa_salario_real_vs_base() -> list:
     """
-    Compara el salario medio real de cada empleado con el
-    salario base de su cargo. Detecta quién cobra
-    significativamente más o menos de lo establecido.
+    Compara el salario de cada empleado con la media salarial
+    de su cargo. Detecta quién cobra significativamente
+    más o menos que sus compañeros de puesto.
     """
 
     df = query("""
-        SELECT e.id_empleado, e.nombre, e.apellido,
-               c.nombre_cargo, c.salario_base,
-               AVG(se.salario_real) as salario_real_medio
-        FROM Empleado e
-        JOIN Cargo c ON e.id_cargo = c.id_cargo
-        JOIN SalarioEmpleado se ON se.id_empleado = e.id_empleado
-        GROUP BY e.id_empleado
+        SELECT empleado AS nombre, cargo AS nombre_cargo,
+               salario_real AS salario_real_medio
+        FROM Empleados
     """)
 
-    # Diferencia absoluta en euros
-    df["diferencia"] = (df["salario_real_medio"] - df["salario_base"]).round(2)
+    # Usamos la media del cargo como referencia de comparación
+    # ya que no hay una tabla separada con salario base
+    df["salario_medio_cargo"] = df.groupby("nombre_cargo")["salario_real_medio"] \
+                                  .transform("mean").round(2)
 
-    # Positivo = cobra más de lo marcado por el cargo
-    # Negativo = cobra menos de lo marcado por el cargo
+    # Diferencia absoluta respecto a la media de su cargo
+    df["diferencia"] = (df["salario_real_medio"] - df["salario_medio_cargo"]).round(2)
+
+    # Positivo = cobra más que la media de su cargo
+    # Negativo = cobra menos que la media de su cargo
     df["diferencia_%"] = (
-        (df["diferencia"] / df["salario_base"]) * 100
+        (df["diferencia"] / df["salario_medio_cargo"]) * 100
     ).round(2)
 
     return df.to_dict(orient="records")
+
 
 def antiguedad_media_por_cargo() -> list:
     """
@@ -235,10 +223,8 @@ def antiguedad_media_por_cargo() -> list:
     """
 
     df = query("""
-        SELECT c.nombre_cargo,
-               e.fecha_contratacion
-        FROM Empleado e
-        JOIN Cargo c ON e.id_cargo = c.id_cargo
+        SELECT cargo AS nombre_cargo, fecha_contratacion
+        FROM Empleados
     """)
 
     # Convertimos la fecha a datetime para poder operar con ella
@@ -270,11 +256,11 @@ def distribucion_empleados_por_cargo() -> list:
     """
 
     df = query("""
-        SELECT c.nombre_cargo, c.salario_base,
-               COUNT(e.id_empleado) AS total_empleados
-        FROM Cargo c
-        LEFT JOIN Empleado e ON e.id_cargo = c.id_cargo
-        GROUP BY c.id_cargo
+        SELECT cargo AS nombre_cargo,
+               COUNT(id_empleado) AS total_empleados,
+               AVG(salario_real) AS salario_base
+        FROM Empleados
+        GROUP BY cargo
         ORDER BY total_empleados DESC
     """)
 
@@ -282,31 +268,29 @@ def distribucion_empleados_por_cargo() -> list:
     total = df["total_empleados"].sum()
     df["porcentaje_%"] = (df["total_empleados"] / total * 100).round(2)
 
-    # Coste total de la plantilla por cargo
-    # (salario base × número de empleados)
-    df["coste_total_cargo"] = df["salario_base"] * df["total_empleados"]
+    # Coste total estimado por cargo (salario medio × número de empleados)
+    df["coste_total_cargo"] = (df["salario_base"] * df["total_empleados"]).round(0)
 
     return df.to_dict(orient="records")
 
-# CONCIERTO
+
+# CONCIERTOS
 
 def ranking_cantantes_por_actividad() -> list:
     """
     Ranking de cantantes por número de conciertos realizados
-    y duración total de sus giras.
+    y duración total de sus conciertos.
     Permite ver quién tiene más actividad en directo.
     """
 
     df = query("""
-        SELECT ca.nombre AS cantante,
-               COUNT(co.id_concierto) AS total_conciertos,
-               SUM(g.duracion) AS duracion_total_minutos,
-               COUNT(DISTINCT g.id_gira) AS total_giras,
-               AVG(g.num_canciones) AS media_canciones_por_gira
-        FROM Conciertos co
-        JOIN Cantante ca ON co.id_cantante = ca.id_cantante
-        JOIN Gira g ON co.id_gira = g.id_gira
-        GROUP BY co.id_cantante
+        SELECT Cantante AS cantante,
+               COUNT(*) AS total_conciertos,
+               SUM(duracion) AS duracion_total_minutos,
+               COUNT(DISTINCT concierto) AS total_giras,
+               AVG(num_canciones) AS media_canciones_por_gira
+        FROM Conciertos
+        GROUP BY Cantante
         ORDER BY total_conciertos DESC
     """)
 
@@ -319,23 +303,21 @@ def ranking_cantantes_por_actividad() -> list:
 
 def distribucion_conciertos_por_continente() -> list:
     """
-    Agrupa los conciertos por continente para ver
-    en qué parte del mundo hay más actividad musical.
+    Agrupa los conciertos por nacionalidad del cantante para ver
+    qué países concentran más actividad musical en sus artistas.
     """
 
     df = query("""
-        SELECT p.continente,
-               COUNT(co.id_concierto) AS total_conciertos,
-               COUNT(DISTINCT co.id_cantante) AS cantantes_distintos,
-               COUNT(DISTINCT co.id_recinto) AS recintos_distintos
-        FROM Conciertos co
-        JOIN Recinto r ON co.id_recinto = r.id_recinto
-        JOIN Pais p ON r.id_pais = p.id
-        GROUP BY p.continente
+        SELECT nacionalidad AS continente,
+               COUNT(*) AS total_conciertos,
+               COUNT(DISTINCT Cantante) AS cantantes_distintos,
+               COUNT(DISTINCT recinto) AS recintos_distintos
+        FROM Conciertos
+        GROUP BY nacionalidad
         ORDER BY total_conciertos DESC
     """)
 
-    # Porcentaje del total de conciertos que representa cada continente
+    # Porcentaje del total de conciertos que representa cada nacionalidad
     total = df["total_conciertos"].sum()
     df["porcentaje_%"] = (df["total_conciertos"] / total * 100).round(2)
 
@@ -345,18 +327,15 @@ def distribucion_conciertos_por_continente() -> list:
 def recintos_mas_demandados() -> list:
     """
     Ranking de recintos que acogen más conciertos.
-    Incluye el país y los cantantes distintos que han
-    actuado en cada recinto.
+    Incluye los cantantes distintos que han actuado en cada recinto.
     """
 
     df = query("""
-        SELECT r.nombre AS recinto, p.nombre AS pais, p.continente,
-               COUNT(co.id_concierto) AS total_conciertos,
-               COUNT(DISTINCT co.id_cantante) AS cantantes_distintos
-        FROM Conciertos co
-        JOIN Recinto r ON co.id_recinto = r.id_recinto
-        JOIN Pais p ON r.id_pais = p.id
-        GROUP BY co.id_recinto
+        SELECT recinto, pais, continente,
+               COUNT(*) AS total_conciertos,
+               COUNT(DISTINCT Cantante) AS cantantes_distintos
+        FROM Conciertos
+        GROUP BY recinto
         ORDER BY total_conciertos DESC
     """)
 
@@ -370,20 +349,18 @@ def recintos_mas_demandados() -> list:
 def ocupacion_media_por_cantante() -> list:
     """
     Calcula el porcentaje de ocupación medio por cantante.
-    (entradas_vendidas / capacidad_recinto * 100)
+    (entradas_vendidas / max_entradas * 100)
     Mide quién llena más los recintos donde actúa.
     """
 
     df = query("""
-        SELECT ca.nombre AS cantante,
-               AVG(CAST(co.entradas_vendidas AS FLOAT)
-                   / r.capacidad * 100) AS "ocupacion_media",
-               SUM(co.entradas_vendidas) AS entradas_totales,
-               COUNT(co.id_concierto) AS total_conciertos
-        FROM Conciertos co
-        JOIN Cantante ca ON co.id_cantante = ca.id_cantante
-        JOIN Recinto r ON co.id_recinto = r.id_recinto
-        GROUP BY co.id_cantante
+        SELECT Cantante AS cantante,
+               AVG(CAST(entradas_vendidas AS FLOAT)
+                   / max_entradas * 100) AS "ocupacion_media",
+               SUM(entradas_vendidas) AS entradas_totales,
+               COUNT(*) AS total_conciertos
+        FROM Conciertos
+        GROUP BY Cantante
         ORDER BY ocupacion_media DESC
     """)
 
@@ -391,39 +368,37 @@ def ocupacion_media_por_cantante() -> list:
 
     return df.to_dict(orient="records")
 
+
 def rentabilidad_por_gira() -> list:
     """
     Calcula el ratio de conciertos por gira de cada cantante.
     Un ratio alto significa que exprime bien cada gira,
     lo que es directamente rentable para el promotor.
-    También incluye la duración media y canciones medias
-    por gira para valorar la intensidad del trabajo.
     """
 
     df = query("""
-        SELECT ca.nombre AS cantante,
-               g.nombre_gira,
-               g.num_canciones,
-               g.duracion,
-               COUNT(co.id_concierto) AS conciertos_en_gira
-        FROM Conciertos co
-        JOIN Cantante ca ON co.id_cantante = ca.id_cantante
-        JOIN Gira g ON co.id_gira = g.id_gira
-        GROUP BY co.id_cantante, co.id_gira
+        SELECT Cantante AS cantante,
+               concierto AS nombre_gira,
+               num_canciones,
+               duracion,
+               COUNT(*) AS conciertos_en_gira
+        FROM Conciertos
+        GROUP BY Cantante, concierto
     """)
 
     # Agrupamos por cantante para obtener sus medias globales
     resumen = df.groupby("cantante").agg(
-        total_giras            = ("nombre_gira", "count"),
-        conciertos_por_gira    = ("conciertos_en_gira", "mean"),
-        duracion_media_gira    = ("duracion", "mean"),
-        canciones_media_gira   = ("num_canciones", "mean")
+        total_giras          = ("nombre_gira", "count"),
+        conciertos_por_gira  = ("conciertos_en_gira", "mean"),
+        duracion_media_gira  = ("duracion", "mean"),
+        canciones_media_gira = ("num_canciones", "mean")
     ).round(2)
 
     # Ordenamos por conciertos por gira descendente
     resumen = resumen.sort_values("conciertos_por_gira", ascending=False)
 
     return resumen.reset_index().to_dict(orient="records")
+
 
 # PELÍCULAS
 
@@ -437,8 +412,8 @@ def rentabilidad_peliculas() -> list:
     """
 
     df = query("""
-        SELECT titulo, duracion, presupuesto, recaudacion
-        FROM Pelicula
+        SELECT Pelicula AS titulo, duracion, presupuesto, recaudacion
+        FROM Cine
         WHERE presupuesto > 0
         ORDER BY recaudacion DESC
     """)
@@ -474,15 +449,13 @@ def generos_mas_rentables() -> list:
     """
 
     df = query("""
-        SELECT g.nombre AS genero,
-               AVG(p.recaudacion) AS recaudacion_media,
-               AVG(p.presupuesto) AS presupuesto_medio,
-               COUNT(p.id_pelicula) AS total_peliculas,
-               AVG(p.duracion) AS duracion_media
-        FROM Pelicula p
-        JOIN Pelicula_Genero pg ON p.id_pelicula = pg.id_pelicula
-        JOIN Genero g ON pg.id_genero = g.id_genero
-        GROUP BY g.id_genero
+        SELECT genero,
+               AVG(recaudacion) AS recaudacion_media,
+               AVG(presupuesto) AS presupuesto_medio,
+               COUNT(*) AS total_peliculas,
+               AVG(duracion) AS duracion_media
+        FROM Cine
+        GROUP BY genero
         ORDER BY recaudacion_media DESC
     """)
 
@@ -502,20 +475,17 @@ def directores_mas_taquilleros() -> list:
     """
     Ranking de directores por recaudación media de sus películas.
     Incluye el número de películas dirigidas para que el dato
-    sea más representativo (un director con 10 películas es
-    más fiable que uno con solo 1).
+    sea más representativo.
     """
 
     df = query("""
-        SELECT pe.nombre AS director,
-               COUNT(pd.id_pelicula) AS peliculas_dirigidas,
-               AVG(p.recaudacion) AS recaudacion_media,
-               AVG(p.presupuesto) AS presupuesto_medio,
-               SUM(p.recaudacion) AS recaudacion_total
-        FROM Pelicula_Director pd
-        JOIN Pelicula p ON pd.id_pelicula = p.id_pelicula
-        JOIN Persona pe ON pd.id_persona = pe.id_persona
-        GROUP BY pd.id_persona
+        SELECT director,
+               COUNT(*) AS peliculas_dirigidas,
+               AVG(recaudacion) AS recaudacion_media,
+               AVG(presupuesto) AS presupuesto_medio,
+               SUM(recaudacion) AS recaudacion_total
+        FROM Cine
+        GROUP BY director
         ORDER BY recaudacion_media DESC
     """)
 
@@ -524,27 +494,25 @@ def directores_mas_taquilleros() -> list:
         df["recaudacion_media"] / df["presupuesto_medio"]
     ).round(2)
 
-    df["recaudacion_media"]  = df["recaudacion_media"].round(2)
-    df["presupuesto_medio"]  = df["presupuesto_medio"].round(2)
-    df["recaudacion_total"]  = df["recaudacion_total"].round(2)
+    df["recaudacion_media"] = df["recaudacion_media"].round(2)
+    df["presupuesto_medio"] = df["presupuesto_medio"].round(2)
+    df["recaudacion_total"] = df["recaudacion_total"].round(2)
 
     # Ranking global
     df["ranking"] = range(1, len(df) + 1)
 
     return df.to_dict(orient="records")
 
+
 def peliculas_mayor_perdida() -> list:
     """
     Identifica las películas con mayor pérdida económica
     en términos absolutos (euros perdidos).
-    Para una productora esto es crítico: saber qué proyectos
-    han sido los peores fracasos económicos ayuda a evitar
-    patrones repetidos en futuras producciones.
     """
 
     df = query("""
-        SELECT titulo, presupuesto, recaudacion, duracion
-        FROM Pelicula
+        SELECT Pelicula AS titulo, presupuesto, recaudacion, duracion
+        FROM Cine
         WHERE presupuesto > 0
     """)
 
@@ -568,23 +536,19 @@ def peliculas_mayor_perdida() -> list:
 def impacto_actores_en_recaudacion() -> list:
     """
     Calcula la recaudación media de las películas en las que
-    ha participado cada actor. Útil para decidir a quién
-    contratar en un proyecto si se busca maximizar la
-    recaudación en taquilla.
-    Solo incluye actores con al menos 2 películas para
-    que el dato sea estadísticamente representativo.
+    ha participado cada actor protagonista. Útil para decidir
+    a quién contratar para maximizar la recaudación en taquilla.
+    Solo incluye actores con al menos 2 películas.
     """
 
     df = query("""
-        SELECT pe.nombre AS actor,
-               COUNT(r.id_pelicula) AS total_peliculas,
-               AVG(p.recaudacion) AS recaudacion_media,
-               AVG(p.presupuesto) AS presupuesto_medio,
-               SUM(p.recaudacion) AS recaudacion_total
-        FROM Reparto r
-        JOIN Pelicula p ON r.id_pelicula = p.id_pelicula
-        JOIN Persona pe ON r.id_persona = pe.id_persona
-        GROUP BY r.id_persona
+        SELECT actor_protagonista AS actor,
+               COUNT(*) AS total_peliculas,
+               AVG(recaudacion) AS recaudacion_media,
+               AVG(presupuesto) AS presupuesto_medio,
+               SUM(recaudacion) AS recaudacion_total
+        FROM Cine
+        GROUP BY actor_protagonista
         HAVING total_peliculas >= 2
         ORDER BY recaudacion_media DESC
     """)
@@ -594,9 +558,9 @@ def impacto_actores_en_recaudacion() -> list:
         df["recaudacion_media"] / df["presupuesto_medio"]
     ).round(2)
 
-    df["recaudacion_media"]  = df["recaudacion_media"].round(2)
-    df["presupuesto_medio"]  = df["presupuesto_medio"].round(2)
-    df["recaudacion_total"]  = df["recaudacion_total"].round(2)
+    df["recaudacion_media"] = df["recaudacion_media"].round(2)
+    df["presupuesto_medio"] = df["presupuesto_medio"].round(2)
+    df["recaudacion_total"] = df["recaudacion_total"].round(2)
 
     # Ranking por recaudación media
     df["ranking"] = range(1, len(df) + 1)

@@ -33,7 +33,7 @@ def grafico_rendimiento_posicion(datos: list) -> bytes:
     """
 
     df = pd.DataFrame(datos)
-
+    print("Columnas disponibles:", df.columns.tolist())
     # Agrupamos por posición cogiendo el primer valor de la media
     # ya que todos los jugadores de la misma posición tienen la misma
     resumen = df.groupby("posicion")[
@@ -240,7 +240,7 @@ def grafico_ranking_salarios(datos: list) -> bytes:
 
     fig, ax = plt.subplots(figsize=(10, max(6, len(df) * 0.4)))
 
-    ax.barh(df["nombre"] + " " + df["apellido"],
+    ax.barh(df["nombre"],
             df["salario_real_medio"], color=colores)
 
     ax.set_title("Ranking salarial de empleados por cargo")
@@ -274,7 +274,7 @@ def grafico_comparativa_vs_base(datos: list) -> bytes:
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    ax.barh(df["nombre"] + " " + df["apellido"],
+    ax.barh(df["nombre"],
             df["diferencia_%"], color=colores)
     ax.axvline(x=0, color="black", linewidth=0.8)
 
@@ -306,11 +306,7 @@ def grafico_antiguedad_por_cargo(datos: list) -> bytes:
     error_izq = df["antiguedad_media"] - df["antiguedad_minima"]
     error_der = df["antiguedad_maxima"] - df["antiguedad_media"]
 
-    ax.errorbar(df["antiguedad_media"],
-                range(len(df)),
-                xerr=[error_izq, error_der],
-                fmt="none", color="black",
-                capsize=5, linewidth=1.5)
+
 
     # Valor exacto al final de cada barra
     for barra, valor in zip(barras, df["antiguedad_media"]):
@@ -328,8 +324,8 @@ def grafico_distribucion_empleados(datos: list) -> bytes:
     """
     Doble gráfico: tarta con el porcentaje de empleados
     por cargo y barras con el coste total por cargo.
-    Permite ver simultáneamente la estructura organizativa
-    y su impacto económico.
+    Usa los mismos colores en ambos gráficos para que
+    sea fácil relacionar cada cargo entre las dos vistas.
 
     Parámetros:
         datos → resultado de distribucion_empleados_por_cargo()
@@ -337,22 +333,31 @@ def grafico_distribucion_empleados(datos: list) -> bytes:
 
     df = pd.DataFrame(datos)
 
+    # Definimos un diccionario de colores por cargo para que
+    # coincidan exactamente en la tarta y en las barras
+    paleta = ["steelblue", "orange", "green", "red", "purple"]
+    color_por_cargo = {cargo: paleta[i % len(paleta)]
+                       for i, cargo in enumerate(df["nombre_cargo"])}
+
+    colores_ordenados = [color_por_cargo[c] for c in df["nombre_cargo"]]
+
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14, 6))
 
     # Gráfico de tarta con el porcentaje de empleados por cargo
-    colores = ["steelblue", "orange", "green", "red", "purple"]
     ax1.pie(df["total_empleados"],
             labels=df["nombre_cargo"],
             autopct="%1.1f%%",
-            colors=colores[:len(df)],
+            colors=colores_ordenados,
             startangle=90)
     ax1.set_title("Distribución de empleados\npor cargo")
 
-    # Barras con el coste total por cargo
+    # Barras con el coste total por cargo usando los mismos colores
     df_sorted = df.sort_values("coste_total_cargo", ascending=True)
+    colores_barras = [color_por_cargo[c] for c in df_sorted["nombre_cargo"]]
+
     ax2.barh(df_sorted["nombre_cargo"],
              df_sorted["coste_total_cargo"],
-             color=colores[:len(df_sorted)])
+             color=colores_barras)
 
     # Valor exacto al final de cada barra
     for i, valor in enumerate(df_sorted["coste_total_cargo"]):
@@ -529,8 +534,8 @@ def grafico_ocupacion_por_cantante(datos: list) -> bytes:
 def grafico_rentabilidad_giras(datos: list) -> bytes:
     """
     Barras horizontales con los conciertos medios por gira
-    de cada cantante. Una barra más larga significa que
-    exprime mejor cada gira económicamente.
+    de cada cantante. El color es relativo a la media del
+    dataset para que siempre haya distinción visual.
 
     Parámetros:
         datos → resultado de rentabilidad_por_gira()
@@ -539,26 +544,34 @@ def grafico_rentabilidad_giras(datos: list) -> bytes:
     df = pd.DataFrame(datos)
     df = df.sort_values("conciertos_por_gira", ascending=True)
 
-    # Color según rentabilidad de la gira
-    def color_rentabilidad(valor):
-        if valor >= 10:
+    # Usamos colores relativos a la media del dataset
+    # para que siempre haya distinción visual independientemente
+    # de los valores absolutos
+    media = df["conciertos_por_gira"].mean()
+
+    def color_relativo(valor):
+        if valor >= media * 1.2:
             return "green"
-        elif valor >= 5:
+        elif valor >= media * 0.8:
             return "orange"
         else:
             return "red"
 
-    colores = [color_rentabilidad(v) for v in df["conciertos_por_gira"]]
+    colores = [color_relativo(v) for v in df["conciertos_por_gira"]]
 
     fig, ax = plt.subplots(figsize=(10, 6))
 
     barras = ax.barh(df["cantante"], df["conciertos_por_gira"],
                      color=colores)
 
-    # Duración media de gira al final de cada barra
+    # Media como línea de referencia vertical
+    ax.axvline(x=media, color="black", linestyle="--",
+               linewidth=1, label=f"Media ({media:.1f})")
+
+    # Duración y canciones al final de cada barra
     for barra, duracion, canciones in zip(
             barras, df["duracion_media_gira"], df["canciones_media_gira"]):
-        ax.text(barra.get_width() + 0.1,
+        ax.text(barra.get_width() + 0.05,
                 barra.get_y() + barra.get_height() / 2,
                 f"{duracion:.0f} min | {canciones:.0f} canciones",
                 va="center", fontsize=8)
@@ -566,10 +579,11 @@ def grafico_rentabilidad_giras(datos: list) -> bytes:
     ax.set_title("Conciertos medios por gira por cantante\n"
                  "(mayor valor = gira más rentable)")
     ax.set_xlabel("Conciertos por gira")
+    ax.legend()
 
-    leyenda = [Patch(color="green",  label="≥ 10 conciertos/gira"),
-               Patch(color="orange", label="5-10 conciertos/gira"),
-               Patch(color="red",    label="< 5 conciertos/gira")]
+    leyenda = [Patch(color="green",  label="Por encima de la media (+20%)"),
+               Patch(color="orange", label="En torno a la media"),
+               Patch(color="red",    label="Por debajo de la media (-20%)")]
     ax.legend(handles=leyenda, loc="lower right")
 
     return guardar_grafico()
@@ -810,3 +824,4 @@ def grafico_impacto_actores(datos: list) -> bytes:
     ax.legend(handles=leyenda, loc="lower right")
 
     return guardar_grafico()
+
