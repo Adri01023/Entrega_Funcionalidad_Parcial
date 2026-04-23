@@ -109,20 +109,29 @@ with engine.connect() as conn:
     INSERT INTO Conciertos 
     (cantante, nacionalidad, fecha_nac, concierto, num_canciones, duracion, recinto, pais, continente, max_entradas, entradas_vendidas, id_admin)
     VALUES
-    ('Taylor Swift','Estadounidense','1989-12-13','The Eras Tour: Dublin N1',44,180,'Aviva Stadium','Irlanda','Europa',52000,52000,1),
-    ('Taylor Swift','Estadounidense','1989-12-13','The Eras Tour: Dublin N2',44,180,'Aviva Stadium','Irlanda','Europa',52000,52000,1),
-    ('Taylor Swift','Estadounidense','1989-12-13','The Eras Tour: Dublin N3',44,180,'Aviva Stadium','Irlanda','Europa',52000,52000,1),
-    ('Harry Styles','Británica','1994-02-01','Love On Tour: London N6',25,120,'Wembley Stadium','UK','Europa',90000,90000,1),
-    ('Dua Lipa','Británica','1995-08-22','Radical Optimism Tour: Singapore N4',24,105,'Indoor Stadium','Singapur','Asia',12000,12000,1),
-    ('Ariana Grande','Estadounidense','1993-06-26','Sweetener World Tour: London N5',28,115,'The O2 Arena','UK','Europa',20000,20000,1),
-    ('Olivia Rodrigo','Estadounidense','2003-02-20','GUTS World Tour: Dublin N2',22,95,'3Arena','Irlanda','Europa',13000,13000,1),
-    ('Lady Gaga','Estadounidense','1986-03-28','The Chromatica Ball: Miami N3',20,110,'Hard Rock Stadium','USA','Norteamérica',65000,65000,1),
-    ('Imagine Dragons','Estadounidense','2008-06-15','Mercury World Tour: Lyon N3',26,130,'Groupama Stadium','Francia','Europa',59000,59000,1),
-    ('Twenty One Pilots','Estadounidense','2009-12-29','Clancy World Tour: Hamburg N2',24,120,'Barclays Arena','Alemania','Europa',15000,15000,1),
-    ('Sabrina Carpenter','Estadounidense','1999-05-11','Short n'' Sweet Tour: Amsterdam N4',23,100,'Ziggo Dome','Países Bajos','Europa',17000,17000,1),
-    ('Conan Gray','Estadounidense','1998-12-05','Found Heaven On Tour: Tokyo N3',21,100,'Garden Theatre','Japón','Asia',8000,8000,1),
-    ('Troye Sivan','Australiana','1995-06-05','Something to Give Each Other Tour: Paris N4',19,90,'Zénith Paris','Francia','Europa',6800,6800,1),
-    ('Alec Benjamin','Estadounidense','1994-05-28','12 Notes Tour: London N6',20,90,'Eventim Apollo','UK','Europa',5000,5000,1)
+    ('Taylor Swift','Estadounidense','1989-12-13','1989 World Tour',19,110,'Tokyo Dome','Japón','Asia',55000,31870,1),
+    ('Lorde','Neozelandesa','1996-11-07','Melodrama World Tour',20,105,'Rose Bowl Stadium','Estados Unidos','América del Norte',88000,68592,1),
+    ('Coldplay','Británico','2000-01-01','A Head Full of Dreams Tour',20,105,'National Stadium Singapore','Singapur','Asia',55000,54975,1),
+    ('Lorde','Neozelandesa','1996-11-07','Solar Power Tour',20,105,'Arena Corinthians','Brasil','América del Sur',49000,40027,1),
+    ('Rihanna','Barbadense','1988-02-20','Anti World Tour',20,105,'Movistar Arena Madrid','España','Europa',17000,10607,1),
+    ('Halsey','Estadounidense','1994-09-29','Hopeless Fountain Kingdom Tour',20,105,'National Stadium Singapore','Singapur','Asia',55000,38300,1),
+    ('Rihanna','Barbadense','1988-02-20','Diamonds World Tour',20,105,'Rogers Centre','Canadá','América del Norte',50000,29654,1),
+    ('Halsey','Estadounidense','1994-09-29','Manic World Tour',20,105,'WiZink Center','España','Europa',17000,12556,1),
+    ('Selena Gomez','Estadounidense','1992-07-22','We Own the Night Tour',20,105,'Staples Center','Estados Unidos','América del Norte',20000,17875,1),
+    ('Halsey','Estadounidense','1994-09-29','Manic World Tour',20,105,'Maracanã Stadium','Brasil','América del Sur',78000,59349,1),
+    ('Selena Gomez','Estadounidense','1992-07-22','Revival Tour',20,105,'Wembley Stadium','Reino Unido','Europa',90000,52408,1),
+    ('Maroon 5','Estadounidense','2000-01-01','Overexposed Tour',20,105,'Rose Bowl Stadium','Estados Unidos','América del Norte',88000,47105,1),
+    ('Selena Gomez','Estadounidense','1992-07-22','Stars Dance Tour',20,105,'Arena Ciudad de México','México','América del Norte',22000,17645,1),
+    ('Maroon 5','Estadounidense','2000-01-01','Overexposed Tour',20,105,'Mercedes-Benz Stadium','Estados Unidos','América del Norte',71000,45155,1),
+    ('Justin Bieber','Canadiense','1994-03-01','Believe Tour',20,105,'WiZink Center','España','Europa',17000,13606,1),
+    ('Taylor Swift','Estadounidense','1989-12-13','Speak Now World Tour',15,95,'WiZink Center','España','Europa',17000,11514,1),
+    ('Imagine Dragons','Estadounidense','2000-01-01','Evolve World Tour',20,105,'Camp Nou','España','Europa',99000,91552,1),
+    ('Dua Lipa','Británica','1995-08-22','Future Nostalgia Tour',20,105,'Arena Corinthians','Brasil','América del Sur',49000,30004,1),
+    ('Justin Bieber','Canadiense','1994-03-01','Believe Tour',20,105,'Accor Arena','Francia','Europa',20000,14937,1),
+    ('Dua Lipa','Británica','1995-08-22','The Self-Titled Tour',20,105,'Tokyo Dome','Japón','Asia',55000,34476,1),
+    ('Harry Styles','Británico','1994-02-01','Harry Styles Live Tour',20,105,'Foro Sol','México','América del Norte',65000,38672,1),
+    ('Harry Styles','Británico','1994-02-01','Harry Styles Live Tour',20,105,'River Plate Stadium','Argentina','América del Sur',83000,73572,1),
+    ('Katy Perry','Estadounidense','1984-10-25','Witness Tour',20,105,'Rod Laver Arena','Australia','Oceanía',15000,10955,1)
     """))
 
     conn.execute(text("""
