@@ -1,4 +1,4 @@
-cantante,nacionalidad,fecha_nac,concierto,num_canciones,duracion,recinto,pais,continente,max_entradas,entradaas_vendidas,id_admin
+cantante,nacionalidad,fecha_nac,concierto,num_canciones,duracion,recinto,pais,continente,max_entradas,entradas_vendidas,id_admin
 Taylor Swift,Estadounidense,1989-12-13 ,1989 World Tour,19,110,Tokyo Dome,Japón,Asia,55000,31870,1
 Lorde,Neozelandesa,1996-11-07 ,Melodrama World Tour,20,105,Rose Bowl Stadium,Estados Unidos,América del Norte,88000,68592,1
 Coldplay,Británico,2000-01-01 ,A Head Full of Dreams Tour,20,105,National Stadium Singapore,Singapur,Asia,55000,54975,1
