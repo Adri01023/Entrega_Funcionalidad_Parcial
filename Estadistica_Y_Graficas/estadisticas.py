@@ -3,7 +3,7 @@
 import pandas as pd
 from sqlalchemy import create_engine
 
-engine = create_engine("sqlite:///baseConjunta.db")
+engine = create_engine("sqlite:///baseDatos.db")
 
 
 def query(sql: str) -> pd.DataFrame:
@@ -160,7 +160,7 @@ def ranking_salarial(id_admin: int) -> list:
         WHERE id_admin = {id_admin}
     """)
 
-    df = df.sort_values("salario_real_medio", ascending=False)
+    df = df.sort_values("salario_real_medio", ascending=False).head(25)
 
     df["ranking_global"] = range(1, len(df) + 1)
 

@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 import "./dashboard.css";
+import * as XLSX from "xlsx";
+
+// Pendiente mover a otros modulos e importar componentes. Crear hooks
+// https://www.w3schools.com/react/react_hooks.asp 
+// https://legacy.reactjs.org/docs/hooks-custom.html 
+
 
 //Dirección de nuestro endpoint que nos permite la conexión entre frontend y backend
 const BASE_URL = "http://127.0.0.1:8000";
 
 // http://localhost:8000/empleados/distribucion/grafico
 
+/*
 // Array que contiene los graficos de prueba con sus url correspondientes
 const graficos = [
   // Fútbol
@@ -72,6 +79,99 @@ const graficos = [
     url: "/peliculas/impacto-actores/grafico",
   },
 ];
+*/
+
+// Datasets que contienen todos los gráficos
+const datasets = [
+  {
+    id: "futbol",
+    nombre: "Fútbol",
+    graficos: [
+      {
+        nombre: "Rendimiento vs Media Posición",
+        url: "/futbol/rendimiento/grafico",
+      },
+      { nombre: "Ranking Goleadores", url: "/futbol/goleadores/grafico" },
+      { nombre: "Estadísticas por Equipo", url: "/futbol/equipos/grafico" },
+      { nombre: "Eficiencia Goleadora", url: "/futbol/eficiencia/grafico" },
+    ],
+  },
+  {
+    id: "empleados",
+    nombre: "Empleados",
+    graficos: [
+      {
+        nombre: "Distribución Salarial por Cargo",
+        url: "/empleados/distribucion/grafico",
+      },
+      {
+        nombre: "Ranking Salarial",
+        url: "/empleados/ranking-salarial/grafico",
+      },
+      {
+        nombre: "Comparativa Salario Real vs Base",
+        url: "/empleados/comparativa-base/grafico",
+      },
+      {
+        nombre: "Antigüedad Media por Cargo",
+        url: "/empleados/antiguedad/grafico",
+      },
+      {
+        nombre: "Estructura de Plantilla",
+        url: "/empleados/estructura-plantilla/grafico",
+      },
+    ],
+  },
+  {
+    id: "conciertos",
+    nombre: "Conciertos",
+    graficos: [
+      {
+        nombre: "Ranking Cantantes por Actividad",
+        url: "/conciertos/actividad/grafico",
+      },
+      {
+        nombre: "Distribución de Conciertos por Continente",
+        url: "/conciertos/continentes/grafico",
+      },
+      {
+        nombre: "Recintos Más Demandados",
+        url: "/conciertos/recintos-top/grafico",
+      },
+      {
+        nombre: "Ocupación Media por Cantante",
+        url: "/conciertos/ocupacion/grafico",
+      },
+      {
+        nombre: "Rentabilidad por Gira",
+        url: "/conciertos/rentabilidad-giras/grafico",
+      },
+    ],
+  },
+  {
+    id: "cine",
+    nombre: "Cine",
+    graficos: [
+      {
+        nombre: "Rentabilidad Películas",
+        url: "/peliculas/rentabilidad/grafico",
+      },
+      { nombre: "Géneros Más Rentables", url: "/peliculas/generos/grafico" },
+      {
+        nombre: "Directores Más Taquilleros",
+        url: "/peliculas/directores/grafico",
+      },
+      {
+        nombre: "Películas con Mayor Pérdida",
+        url: "/peliculas/perdidas/grafico",
+      },
+      {
+        nombre: "Impacto Actores en Recaudación",
+        url: "/peliculas/impacto-actores/grafico",
+      },
+    ],
+  },
+];
 
 //Estructura de dato que alberga el tipo de objeto a almacenar en el historial
 type HistorialItem =
@@ -83,18 +183,329 @@ type HistorialItem =
       count: number;
     }
   | {
-      type: "csv";
+      type: "Fichero";
       nombre: string;
       hora: string;
       lineas: number;
-      columnas: number;
+      columnas: string[];
+      numColumnas: number;
+      extension: string;
     };
 
 //Función por defecto para que funcione la app en react
 function App() {
-  // Use states con valores por defectos
-  // Estado para el gráfico actual, inicializado con el primer gráfico
-  const [graficoActual, setGraficoActual] = useState(graficos[0].url);
+  // Constantes y UseStates de las gráficas y de las tablas/dataset a los que pertenece
+  const [datasetActivo, setDatasetActivo] = useState(datasets[0].id);
+  const [graficosActivos, setGraficosActivos] = useState<string[]>([]);
+  const datasetSeleccionado = datasets.find((d) => d.id === datasetActivo);
+  const [graficoExpandido, setGraficoExpandido] = useState<string | null>(null);
+  const [mostrarChecks, setMostrarChecks] = useState(true);
+
+  // Constantes de usuarios
+  const [usuario, setUsuario] = useState<any | null>(() => {
+    const saved = localStorage.getItem("usuario");
+    return saved ? JSON.parse(saved) : null;
+  });
+  //const [modoAuth, setModoAuth] = useState<"login" | "register" | null>(null);
+  const [nuevoUsuario, setNuevoUsuario] = useState("");
+  const [nuevaPassword, setNuevaPassword] = useState("");
+  const [mensajeUsuario, setMensajeUsuario] = useState("");
+  //const [mostrarCrearUsuario, setMostrarCrearUsuario] = useState(false);
+  const [mostrarLogin, setMostrarLogin] = useState(false);
+  const [hayAdmin, setHayAdmin] = useState<boolean | null>(null);
+  const adminId = usuario?.id_admin || null;
+  const esAdmin = usuario?.es_admin === true;
+
+  //Datasets para mostrar en la sección de gráficas
+  const [datasetsDisponibles, setDatasetsDisponibles] = useState<
+    Record<string, boolean>
+  >({});
+
+  useEffect(() => {
+    if (!usuario) {
+      // logout
+      setDatasetsDisponibles({});
+      setGraficosActivos([]);
+      setDatasetActivo(datasets[0].id);
+      return;
+    }
+
+    // login
+    setGraficosActivos([]);
+    setGraficoExpandido(null);
+  }, [usuario]);
+
+  //Se cargan los datasets disponibles para mostrar en las gráficas
+  useEffect(() => {
+    if (!usuario) return;
+
+    fetch(`${BASE_URL}/datasets-disponibles?id_admin=${usuario.id_admin}`)
+      .then((res) => res.json())
+      .then((data) => {
+        setDatasetsDisponibles(data);
+
+        const primeroDisponible = datasets.find((d) => data[d.id]);
+
+        if (primeroDisponible) {
+          setDatasetActivo(primeroDisponible.id);
+        }
+
+        setGraficosActivos([]);
+      })
+      .catch(() => setDatasetsDisponibles({}));
+  }, [usuario]);
+
+  //check si admin
+  useEffect(() => {
+    const checkAdmin = async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/usuarios/hay-admin`);
+        const data = await res.json();
+        setHayAdmin(data.hay_admin);
+      } catch {
+        setHayAdmin(true); // fallback seguro
+      }
+    };
+
+    checkAdmin();
+  }, []);
+
+  /*
+  const crearUsuario = async () => {
+    if (!usuario) {
+      setMensajeUsuario("Debes iniciar sesión");
+      return;
+    }
+
+    if (!esAdmin) {
+      setMensajeUsuario("Solo los administradores pueden crear usuarios");
+      return;
+    }
+
+    if (!nuevoUsuario || !nuevaPassword) {
+      setMensajeUsuario("Completa todos los campos");
+      return;
+    }
+
+    try {
+      const check = await fetch(`${BASE_URL}/usuarios/hay-admin`);
+      const checkData = await check.json();
+
+      if (!checkData.hay_admin) {
+        setMensajeUsuario(
+          "No existe ningún administrador. Debes crear el primero desde el login",
+        );
+        return;
+      }
+
+      const response = await fetch(`${BASE_URL}/usuarios/crear-usuario`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: nuevoUsuario,
+          password: nuevaPassword,
+          id_admin: usuario.id_admin,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Error creando usuario");
+      }
+
+      setMensajeUsuario("Usuario creado correctamente");
+      setNuevoUsuario("");
+      setNuevaPassword("");
+    } catch (error: any) {
+      setMensajeUsuario(error.message);
+    }
+  };
+*/
+
+  // crear nuevo usuario para admin
+  const admin_crearUsuario = async () => {
+    if (!usuario || !esAdmin) {
+      setMensajeUsuario("No tienes permisos");
+      return;
+    }
+
+    if (!nuevoUsuario || !nuevaPassword) {
+      setMensajeUsuario("Completa todos los campos");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BASE_URL}/usuarios/crear-usuario`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: nuevoUsuario,
+          password: nuevaPassword,
+          id_admin: usuario.id_admin,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.detail);
+
+      setMensajeUsuario("Usuario creado correctamente");
+      setNuevoUsuario("");
+      setNuevaPassword("");
+    } catch (err: any) {
+      setMensajeUsuario(err.message);
+    }
+  };
+
+  const crearPrimerAdmin = async () => {
+    if (!nuevoUsuario || !nuevaPassword) {
+      setMensajeUsuario("Completa todos los campos");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BASE_URL}/usuarios/crear-admin`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: nuevoUsuario,
+          password: nuevaPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.detail);
+
+      setMensajeUsuario("Primer admin creado correctamente");
+      setHayAdmin(true);
+    } catch (err: any) {
+      setMensajeUsuario(err.message);
+    }
+  };
+
+  const crearAdmin = async () => {
+    if (!usuario || !esAdmin) {
+      setMensajeUsuario("No tienes permisos para crear administradores");
+      return;
+    }
+
+    if (!nuevoUsuario || !nuevaPassword) {
+      setMensajeUsuario("Completa todos los campos");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${BASE_URL}/usuarios/crear-admin-secure`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: nuevoUsuario,
+          password: nuevaPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.detail);
+
+      setMensajeUsuario("Admin creado correctamente");
+      setNuevoUsuario("");
+      setNuevaPassword("");
+    } catch (err: any) {
+      setMensajeUsuario(err.message);
+    }
+  };
+
+  useEffect(() => {
+    if (usuario) {
+      localStorage.setItem("usuario", JSON.stringify(usuario));
+    } else {
+      localStorage.removeItem("usuario");
+    }
+  }, [usuario]);
+
+  //Funciones de login
+  //Login de pruebas
+  // Función que realiza el login contra el backend
+  // Envía usuario y contraseña,
+  // guarda la sesión en estado y el localStorage para persistencia local
+  const login = async () => {
+    // Petición POST al endpoint de autenticación
+    try {
+      const res = await fetch(`${BASE_URL}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        // Se envían credenciales en el body
+        body: JSON.stringify({
+          username: nuevoUsuario,
+          password: nuevaPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      // Si hay error en backend, se lanza excepción
+      if (!res.ok) throw new Error(data.detail);
+
+      //Guardamos los datos de usuario en el estado global para ser reutilizado
+      setUsuario(data);
+      setMostrarLogin(false);
+
+      //Reset del formulario de login
+      setNuevoUsuario("");
+      setNuevaPassword("");
+      setMensajeUsuario("");
+      setHistorial([]);
+
+      setMostrarLogin(false); //quitamos boton de login
+    } catch (err: any) {
+      setMensajeUsuario(err.message); //Mostramos error en el login
+    }
+  };
+
+  // Cierra la sesión del usuario actual
+  // Limpia todos los estados relacionados con usuario y graficas/historial
+  const logout = () => {
+    setUsuario(null); //usuario to null -> Volver a Iniciar Sesion
+    setNuevoUsuario("");
+    setNuevaPassword("");
+    setMensajeUsuario("");
+    setHistorial([]);
+    setGraficosActivos([]);
+    setGraficoExpandido(null);
+    setDatasetsDisponibles({});
+  };
+
+  //Si se presiona ESC -> Cerrar login
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMostrarLogin(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleEsc); //Añadimos evento
+
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
+  /*  
+  useEffect(() => {
+    setAdminId(1);
+  }, []);
+  */
 
   // Setea por defecto la sección dashboard (Inicio)
   const [seccion, setSeccion] = useState("dashboard");
@@ -105,9 +516,14 @@ function App() {
 
   /* useState con persistencia a fichero JSON del historial */
   const [historial, setHistorial] = useState<HistorialItem[]>(() => {
-    const saved = localStorage.getItem("historial");
+    if (!usuario) return [];
+
+    const saved = localStorage.getItem(`historial_${usuario.id_admin}`);
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Bool para luego ocultar los botones de la gráfica en caso de no haber datos disponibles
+  const hayDatosDisponibles = Object.values(datasetsDisponibles).some(Boolean);
 
   // Última gráfica consultada que solo puede ser de tipo grafica o null
   const [ultimaGrafica, setUltimaGrafica] = useState<Extract<
@@ -124,7 +540,11 @@ function App() {
     );
 
     if (graficasHistorial.length > 0) {
-      setUltimaGrafica(graficasHistorial[graficasHistorial.length - 1]);
+      const ultima = [...graficasHistorial].sort(
+        (a, b) => new Date(b.hora).getTime() - new Date(a.hora).getTime(),
+      )[0];
+
+      setUltimaGrafica(ultima || null);
     } else {
       setUltimaGrafica(null);
     }
@@ -137,10 +557,52 @@ function App() {
 
   /* Persistencia automática en localStorage */
   useEffect(() => {
-    localStorage.setItem("historial", JSON.stringify(historial));
-  }, [historial]);
+    if (!usuario) return;
+
+    localStorage.setItem(
+      `historial_${usuario.id_admin}`,
+      JSON.stringify(historial),
+    );
+  }, [historial, usuario]);
+
+  /*
+  //Vaciamos el historial al usuario ser null, si no retrievamos de local
+  useEffect(() => {
+    if (!usuario) {
+      setHistorial([]);
+      return;
+    }
+    const saved = localStorage.getItem(`historial_${usuario.id_admin}`);
+    setHistorial(saved ? JSON.parse(saved) : []);
+  }, [usuario]);
+*/
+
+//Al loggear o cerrar session volvemos a inicio y cleareamos la pantalla
+  useEffect(() => {
+    if (usuario) {
+      // LOGIN
+      setSeccion("dashboard");
+      setGraficosActivos([]);
+      setGraficoExpandido(null);
+    } else {
+      // LOGOUT
+      setSeccion("dashboard");
+      setGraficosActivos([]);
+      setGraficoExpandido(null);
+    }
+  }, [usuario]);
+
+  //Devolvemos el primer grafico en el historial para mostrar la ultima grafica consultada
+  // y limpiamos gráficas seleccionadas
+  useEffect(() => {
+    if (!usuario) return;
+    // reset dataset al primero disponible
+    setDatasetActivo(datasets[0].id);
+    setGraficosActivos([]);
+  }, [usuario]);
 
   /* Registrar gráfica en el historial */
+  /*
   const registrarGrafica = (url: string) => {
     // Busca el gráfico en la lista de gráficos disponibles
     const grafica = graficos.find((g) => g.url === url);
@@ -177,6 +639,119 @@ function App() {
       ];
     });
   };
+*/
+
+  /* Registrar gráfica en el historial */
+  // Guarda la grafica consultada en el historial local y de la BBDD
+  const registrarGrafica = async (url: string) => {
+    //Obtenemos datos de la grafica
+    const grafica = datasets
+      .flatMap((d) => d.graficos) //obtenemos todas las graficas de datasets
+      .find((g) => g.url === url); //devuelve el elemento que coincida en url
+
+    //Condicion de salida si gráfica/user -> null
+    if (!grafica || !usuario) return;
+
+    const hora = new Date().toISOString(); //guardamos fecha en formato ISO
+
+    //Persistencia backend
+    await fetch(`${BASE_URL}/historial`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        id_consultor: usuario.id_user || usuario.id_admin,
+        consulta: {
+          type: "grafica",
+          nombre: grafica.nombre,
+          url: url,
+        },
+      }),
+    });
+
+    //Persistencia local
+    setHistorial((prev) => {
+      const existe = prev.find((h) => h.type === "grafica" && h.url === url);
+
+      if (existe && existe.type === "grafica") {
+        return prev.map((h) =>
+          h.type === "grafica" && h.url === url
+            ? { ...h, count: h.count + 1, hora }
+            : h,
+        );
+      }
+
+      //Si no existe se crea un nuevo elemento con contador 1
+      return [
+        ...prev,
+        {
+          type: "grafica",
+          url,
+          nombre: grafica.nombre,
+          hora,
+          count: 1,
+        },
+      ];
+    });
+  };
+
+  // Carga historial desde backend al iniciar sesión
+  // (se sobrescribe el local para mantener consistencia)
+  useEffect(() => {
+    if (!usuario) return;
+
+    fetch(
+      `${BASE_URL}/historial?id_consultor=${usuario.id_user || usuario.id_admin}`,
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        const mapped = data
+          .map((item: any) => {
+            const c = item.consulta;
+
+            if (c.type === "grafica") {
+              return {
+                type: "grafica",
+                nombre: c.nombre,
+                url: c.url,
+                hora: item.fecha,
+                count: 1,
+              };
+            }
+
+            if (c.type === "fichero") {
+              return {
+                type: "Fichero",
+                nombre: c.nombre,
+                hora: item.fecha,
+                lineas: c.lineas,
+                columnas: c.columnas,
+                numColumnas: c.numColumnas,
+                extension: c.extension,
+              };
+            }
+
+            return null;
+          })
+          .filter(Boolean);
+
+        setHistorial(mapped);
+      });
+  }, [usuario]);
+
+  //formatea una string a formato ISO
+  const formatearFecha = (iso: string) => {
+    const fecha = new Date(iso);
+
+    return fecha.toLocaleString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   // La función comprueba que el archivo subido por el usuario sea un archivo con extensión csv
   // Evento de React nativo que se ejecuta al cambiar el valor del input
@@ -185,22 +760,34 @@ function App() {
     const file = e.target.files?.[0];
     if (!file) return; //si archivo null se sale de la funcion
 
+    // Se obtiene la extensión del archivo falla si no contiene "."
+    const extension = file.name.split(".").pop()?.toLowerCase();
+
     //Extensión check
-    if (!file.name.endsWith(".csv")) {
-      alert("Solo se permiten archivos CSV");
+    if (!["csv", "xls", "xlsx", "json"].includes(extension || "")) {
+      alert("Formato no soportado. Usa CSV, XLS, XLSX o JSON");
       return;
     }
 
-    setArchivo(file);
+    setArchivo(file); //guardamos el archivo para que sea parseado posteriormente
   };
 
   // Se lee el fichero csv para guardar el total de lineas y columnas (campos)
   // Objeto nativo de JS File
   // Para las promesas -> https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
+  // Se lee el fichero csv para guardar el total de lineas y columnas (campos)
+  // Objeto nativo de JS File
+  // Para las promesas -> https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
+  /**
+     * Lee un CSV y devuelve número de filas y columnas.
+     * Falla si el formato no es válido. 
+     * @param file - Fichero
+     * @returns - Sale si no es válido el fichero. O Resolve (Promises) si se completa con éxito.
+     */
   const parseCSV = (file: File) =>
     // Se crea nueva promesa para la correcta ejecución de funciones asíncronas
     // Resolve y Reject son callbacks de exito y error en base al resultado de la ejecución del codigo
-    new Promise<{ lineas: number; columnas: number }>((resolve, reject) => {
+    new Promise<{ lineas: number; columnas: string[] }>((resolve, reject) => {
       // FileReader de JS
       const reader = new FileReader();
 
@@ -208,6 +795,7 @@ function App() {
       reader.onload = (event) => {
         //Casting del resultado del fichero a String
         const text = event.target?.result as string;
+
         //Si fichero vacio rechazamos
         if (!text) return reject("Archivo vacío");
 
@@ -218,8 +806,9 @@ function App() {
           .map((r) => r.trim())
           .filter((r) => r !== "");
 
-        //Para las columnas solo separamos una fila por comas
-        const columnas = rows[0].split(",").length;
+        //Para las columnas ahora usamos la primera fila (cabecera del CSV)
+        //Separamos por comas y limpiamos espacios en blanco
+        const columnas = rows[0].split(",").map((c) => c.trim());
 
         //Devuelve un objeto con las lineas y columnas al acabar la ejecución de la promesa
         resolve({
@@ -233,8 +822,77 @@ function App() {
       reader.readAsText(file);
     });
 
-  // Función asíncrona que permite no bloquear la ejecución del hilo principal en su llamada
-  //
+    /**
+     *Lee un JSON (array de objetos) y devuelve número de filas y columnas.
+     * Falla si el formato no es válido. 
+     * @param file - Fichero
+     * @returns - Sale si no es válido el fichero. O Resolve (Promises) si se completa con éxito.
+     */
+  const parseJSON = (file: File) =>
+    new Promise<{ lineas: number; columnas: string[] }>((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        try {
+          const text = event.target?.result as string;
+          const data = JSON.parse(text);
+
+          if (!Array.isArray(data)) {
+            return reject("El JSON debe ser un array de objetos");
+          }
+
+          const columnas = data.length > 0 ? Object.keys(data[0]) : [];
+
+          resolve({
+            lineas: data.length,
+            columnas,
+          });
+        } catch {
+          reject("JSON inválido");
+        }
+      };
+
+      reader.onerror = () => reject("Error leyendo JSON");
+
+      reader.readAsText(file);
+    });
+
+    /**
+     *Lee un archivo de Excel y devuelve número de filas y columnas.
+     * Falla si el formato no es válido. 
+     * @param file - Fichero
+     * @returns - Sale si no es válido el fichero. O Resolve (Promises) si se completa con éxito.
+     */
+  const parseExcel = (file: File) =>
+    new Promise<{ lineas: number; columnas: string[] }>((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        try {
+          const data = event.target?.result as ArrayBuffer;
+
+          const workbook = XLSX.read(data, { type: "array" });
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+
+          const json = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+
+          const columnas = json.length > 0 ? Object.keys(json[0]) : [];
+
+          resolve({
+            lineas: json.length,
+            columnas,
+          });
+        } catch {
+          reject("Error parseando Excel");
+        }
+      };
+
+      reader.onerror = () => reject("Error leyendo Excel");
+
+      reader.readAsArrayBuffer(file);
+    });
+
+  /*
   const uploadCSV = async () => {
     if (!archivo) return; // condicion de salida si archivo está en null
 
@@ -244,7 +902,7 @@ function App() {
 
       //crea un nuevo objeto de tipo HistorialItem para guardarlo
       const nuevaEntrada: HistorialItem = {
-        type: "csv",
+        type: "Fichero",
         nombre: archivo.name,
         hora: new Date().toLocaleString(),
         lineas,
@@ -259,11 +917,96 @@ function App() {
       console.error(err);
     }
   };
+*/
 
-  //Funcion que llama a hacer un clear del historial en la persistencia
-  const clearHistorial = () => {
-    setHistorial([]);
-    localStorage.removeItem("historial");
+  // Función asíncrona que permite no bloquear la ejecución del hilo principal en su llamada
+  /**
+   * Parsea y posteriormente sube el archivo del usuario si este es correcto.
+   * Inicialmente detecta la extensión y después llama a las funciones de parseo correspondientes.
+   * Una vez es correcto se manda al backend y guardamos en el historial (Local y Backend)
+   * Guardamos en el historial el numero de filas y columnas del fichero.
+   * @async
+   * @returns - No devuelve, solo actualiza estados
+   */
+  const uploadFile = async () => {
+    if (!archivo) return; // condicion de salida si archivo está en null
+
+    // Obtenemos la extensión del archivo para determinar cómo parsearlo
+    const extension = archivo.name.split(".").pop()?.toLowerCase();
+
+    try {
+      let result;
+
+      // Según la extensión, llamamos al parser correspondiente
+      if (extension === "csv") {
+        //await pausa la ejecucion hasta que reciba respuesta de la funcion que parsea el fichero
+        result = await parseCSV(archivo);
+      } else if (extension === "json") {
+        result = await parseJSON(archivo);
+      } else if (extension === "xls" || extension === "xlsx") {
+        result = await parseExcel(archivo);
+      } else {
+        throw new Error("Formato no soportado");
+      }
+
+      // después de parsear el fichero localmente
+      await sendFileToBackend(archivo);
+
+      await fetch(`${BASE_URL}/historial`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id_consultor: usuario.id_user || usuario.id_admin,
+          consulta: {
+            type: "fichero",
+            nombre: archivo.name,
+            lineas: result.lineas,
+            columnas: result.columnas,
+            numColumnas: result.columnas.length,
+            extension,
+          },
+        }),
+      });
+
+      //crea un nuevo objeto de tipo HistorialItem para guardarlo
+      const nuevaEntrada: HistorialItem = {
+        type: "Fichero",
+        nombre: archivo.name,
+        hora: new Date().toISOString(),
+        lineas: result.lineas,
+        columnas: result.columnas,
+        numColumnas: result.columnas.length,
+        extension,
+      };
+
+      // Se añade al historial previo la nueva entrada en un nuevo array
+      // prev (haciendo spread) hace referencia al estado previo del historial
+      setHistorial((prev) => [...prev, nuevaEntrada]);
+      setArchivo(null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  //Funcion que llama a hacer un clear del historial en la persistencia local y de BBDD
+  const clearHistorial = async () => {
+    if (!usuario) return;
+
+    try {
+      await fetch(
+        `${BASE_URL}/historial?id_consultor=${usuario.id_user || usuario.id_admin}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      setHistorial([]);
+      localStorage.removeItem(`historial_${usuario.id_admin}`);
+    } catch (err) {
+      console.error("Error borrando historial", err);
+    }
   };
 
   // <> agrupa varios elementos sin usar nuevo div
@@ -271,6 +1014,30 @@ function App() {
   // var === valor && -> Render condicional: https://react.dev/learn/conditional-rendering
   // true && algo → devuelve algo
   // false && algo → devuelve false (no renderiza nada)
+
+  const sendFileToBackend = async (file: File) => {
+    if (!adminId) {
+      throw new Error("adminId no definido");
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(
+      `${BASE_URL}/subir-archivo?id_admin=${adminId}`,
+      {
+        method: "POST",
+        body: formData,
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Error enviando fichero al backend");
+    }
+
+    return await response.json();
+  };
+
   return (
     <>
       <h1 id="titleDashboard">PyBusiness Analytics - Dashboard</h1>
@@ -295,12 +1062,14 @@ function App() {
             <img src="/icons/folder.svg" alt="Files" className="icon" />
           </button>
 
-          <button
-            className={`sidebar-item ${seccion === "upload" ? "active" : ""}`}
-            onClick={() => setSeccion("upload")}
-          >
-            <img src="/icons/upload.svg" alt="Subir" className="icon" />
-          </button>
+          {esAdmin && (
+            <button
+              className={`sidebar-item ${seccion === "upload" ? "active" : ""}`}
+              onClick={() => setSeccion("upload")}
+            >
+              <img src="/icons/upload.svg" alt="Subir" className="icon" />
+            </button>
+          )}
 
           <button
             className={`sidebar-item ${seccion === "charts" ? "active" : ""}`}
@@ -323,7 +1092,7 @@ function App() {
 
         <div className="search-bar">
           <input
-            id="sear-input"
+            id="search-input"
             name="search"
             type="text"
             placeholder="Buscar..."
@@ -335,11 +1104,29 @@ function App() {
         </div>
 
         <div className="user-panel">
-          <img src="/icons/user.svg" alt="Usuario" className="user-avatar" />
-          <div className="user-info">
-            <span className="user-name">Juanito Alcachofa</span>
-            <button className="logout-button">Cerrar sesión</button>
-          </div>
+          {!usuario ? (
+            <button
+              className="login-button"
+              onClick={() => setMostrarLogin(true)}
+            >
+              Iniciar sesión
+            </button>
+          ) : (
+            <>
+              <img
+                src="/icons/user.svg"
+                alt="Usuario"
+                className="user-avatar"
+              />
+
+              <div className="user-info">
+                <span className="user-name">{usuario.username}</span>
+                <button className="logout-button" onClick={logout}>
+                  Cerrar sesión
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         <main className="main-content">
@@ -354,7 +1141,7 @@ function App() {
                   <h2>Última gráfica consultada</h2>
                   <p>{ultimaGrafica.nombre}</p>
                   <img
-                    src={`${BASE_URL}${ultimaGrafica.url}`}
+                    src={`${BASE_URL}${ultimaGrafica.url}?id_admin=${adminId}`}
                     alt={ultimaGrafica.nombre}
                   />
                 </div>
@@ -369,27 +1156,89 @@ function App() {
             <>
               <h1>Gráficas</h1>
 
-              <select
-                id="selectGraph"
-                className="dropdown-graphs"
-                value={graficoActual}
-                onChange={(e) => {
-                  const url = e.target.value;
-                  setGraficoActual(url);
-                  registrarGrafica(url);
-                }}
-              >
-                {graficos.map((g) => (
-                  <option key={g.url} value={g.url}>
-                    {g.nombre}
-                  </option>
-                ))}
-              </select>
+              {!hayDatosDisponibles ? (
+                <p>Todavía no hay datos disponibles</p>
+              ) : (
+                <>
+                  <button
+                    className="toggle-checkboxes"
+                    onClick={() => setMostrarChecks((prev) => !prev)}
+                  >
+                    {mostrarChecks ? "Ocultar filtros" : "Mostrar filtros"}
+                  </button>
 
-              <div className="graph">
-                {/* Se concatena URL con ruta de gráfico */}
-                <img src={`${BASE_URL}${graficoActual}`} alt="Gráfico" />
-              </div>
+                  {/* BOTONES DATASET */}
+                  <div className="dataset-buttons">
+                    {datasets.map((d) => {
+                      const disponible = datasetsDisponibles[d.id];
+
+                      return (
+                        <button
+                          key={d.id}
+                          className={`${datasetActivo === d.id ? "active" : ""} ${
+                            !disponible ? "disabled" : ""
+                          }`}
+                          disabled={!disponible}
+                          onClick={() => {
+                            if (!disponible) return;
+                            setDatasetActivo(d.id);
+                            setGraficosActivos([]);
+                          }}
+                        >
+                          {d.nombre}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* CHECKBOXES */}
+                  {datasetsDisponibles[datasetActivo] && (
+                    <div
+                      className={`checkbox-group ${
+                        !mostrarChecks ? "hidden" : ""
+                      }`}
+                    >
+                      {datasetSeleccionado?.graficos.map((g) => (
+                        <label key={g.url}>
+                          <input
+                            type="checkbox"
+                            checked={graficosActivos.includes(g.url)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setGraficosActivos((prev) => [...prev, g.url]);
+                                registrarGrafica(g.url);
+                              } else {
+                                setGraficosActivos((prev) =>
+                                  prev.filter((url) => url !== g.url),
+                                );
+                              }
+                            }}
+                          />
+                          {g.nombre}
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* GRÁFICAS */}
+                  <div className="graphs-container">
+                    {graficosActivos.length === 0 ? (
+                      <p>Selecciona una o más gráficas</p>
+                    ) : (
+                      graficosActivos.map((url) => (
+                        <div key={url} className="graph">
+                          <img
+                            src={`${BASE_URL}${url}?id_admin=${adminId}`}
+                            alt="Gráfico"
+                            onClick={() => setGraficoExpandido(url)}
+                            className="clickable-graph"
+                          />
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </>
+              )}
             </>
           )}
 
@@ -409,7 +1258,7 @@ function App() {
                       <div key={idx} className="file-item">
                         <div className="file-left">
                           <strong>{item.nombre}</strong>
-                          <p>Última consulta: {item.hora}</p>
+                          <p>Última consulta: {formatearFecha(item.hora)}</p>
                         </div>
 
                         <div className="file-right">
@@ -426,10 +1275,12 @@ function App() {
                     <div key={idx} className="file-item">
                       <div className="file-left">
                         <strong>{item.nombre}</strong>
-                        <p>Añadido: {item.hora}</p>
+                        <p>Añadido: {formatearFecha(item.hora)}</p>
                         <p>
-                          Filas: {item.lineas} | Columnas: {item.columnas}
+                          Filas: {item.lineas} | Columnas: {item.numColumnas}
                         </p>
+
+                        <p>Tipo: {item.extension?.toUpperCase()}</p>
                       </div>
 
                       <div className="file-right">
@@ -447,22 +1298,30 @@ function App() {
           )}
 
           {/* UPLOAD */}
-          {seccion === "upload" && (
+          {seccion === "upload" && esAdmin && (
             <>
               <h1>Subir archivos</h1>
 
               <div className="upload-box">
-                <input type="file" accept=".csv" onChange={handleFileChange} />
+                <input
+                  type="file"
+                  accept=".csv,.xls,.xlsx,.json"
+                  onChange={handleFileChange}
+                />
 
                 <button
                   className="upload-button"
-                  onClick={uploadCSV}
+                  onClick={uploadFile}
                   disabled={!archivo}
                 >
                   Subir archivo
                 </button>
               </div>
             </>
+          )}
+
+          {seccion === "upload" && !esAdmin && (
+            <p>No tienes permisos para acceder a esta sección</p>
           )}
 
           {/* SETTINGS */}
@@ -478,7 +1337,103 @@ function App() {
                   <option value="dia">Modo día</option>
                 </select>
               </div>
+
+              {esAdmin && (
+                <div className="admin-panel">
+                  <h2>Administración</h2>
+
+                  <div className="admin-form">
+                    <input
+                      type="text"
+                      placeholder="Nuevo usuario"
+                      value={nuevoUsuario}
+                      onChange={(e) => setNuevoUsuario(e.target.value)}
+                    />
+
+                    <input
+                      type="password"
+                      placeholder="Contraseña"
+                      value={nuevaPassword}
+                      onChange={(e) => setNuevaPassword(e.target.value)}
+                    />
+
+                    <div className="admin-buttons">
+                      <button onClick={admin_crearUsuario} className="primary">
+                        Crear usuario
+                      </button>
+
+                      <button onClick={crearAdmin} className="secondary">
+                        Crear administrador
+                      </button>
+                    </div>
+                  </div>
+
+                  {mensajeUsuario && (
+                    <p className="admin-message">{mensajeUsuario}</p>
+                  )}
+                </div>
+              )}
             </>
+          )}
+
+          {/* OVERLAY FULLSCREEN */}
+          {graficoExpandido && (
+            <div
+              className="fullscreen-overlay"
+              onClick={() => setGraficoExpandido(null)}
+            >
+              <img
+                src={`${BASE_URL}${graficoExpandido}?id_admin=${adminId}`}
+                alt="Gráfico ampliado"
+                className="fullscreen-image"
+              />
+            </div>
+          )}
+
+          {/* Overlay de Login */}
+          {mostrarLogin && (
+            <div
+              className="modal-overlay"
+              onClick={() => setMostrarLogin(false)}
+            >
+              <div
+                className="modal-login"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h2>Iniciar sesión</h2>
+
+                <input
+                  type="text"
+                  placeholder="Usuario"
+                  value={nuevoUsuario}
+                  onChange={(e) => setNuevoUsuario(e.target.value)}
+                />
+
+                <input
+                  type="password"
+                  placeholder="Contraseña"
+                  value={nuevaPassword}
+                  onChange={(e) => setNuevaPassword(e.target.value)}
+                />
+
+                {hayAdmin ? (
+                  <button onClick={login}>Entrar</button>
+                ) : (
+                  <button onClick={crearPrimerAdmin}>
+                    Crear primer administrador
+                  </button>
+                )}
+
+                <button
+                  className="secondary"
+                  onClick={() => setMostrarLogin(false)}
+                >
+                  Cancelar
+                </button>
+
+                {mensajeUsuario && <p>{mensajeUsuario}</p>}
+              </div>
+            </div>
           )}
         </main>
       </div>

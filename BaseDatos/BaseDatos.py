@@ -1,8 +1,26 @@
+import os
 from sqlalchemy import create_engine, text
 
+# Ruta del archivo actual
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# Crear base de datos combinada
-engine = create_engine("sqlite:///baseDatos.db")
+# Subir a carpeta superior (TFG)
+ROOT_DIR = os.path.dirname(BASE_DIR)
+
+# Ruta final de la BD
+db_path = os.path.join(ROOT_DIR, "baseDatos.db")
+
+db_existed = os.path.exists(db_path)
+
+engine = create_engine(f"sqlite:///{db_path.replace('\\', '/')}")
+
+# DEBUG BUENO
+print("RUTA ACTUAL (cwd):", os.getcwd())
+print("RUTA DEL SCRIPT:", BASE_DIR)
+print("RUTA PROYECTO:", ROOT_DIR)
+print("RUTA REAL BD:", db_path)
+print("EXISTE BD:", os.path.exists(db_path))
+print("EXISTE BD (ANTES):", db_existed)
 
 with engine.connect() as conn:
 
@@ -22,7 +40,7 @@ with engine.connect() as conn:
         id_user INTEGER PRIMARY KEY AUTOINCREMENT,
         id_admin INTEGER NOT NULL,
         usuario TEXT NOT NULL,
-        contraseña TEXT NOT NULL,
+        contrasena TEXT NOT NULL,
         FOREIGN KEY (id_admin) REFERENCES Administrador(id_admin)
             ON DELETE CASCADE ON UPDATE CASCADE
     )
@@ -62,8 +80,8 @@ with engine.connect() as conn:
         empleado TEXT NOT NULL,
         departamento TEXT NOT NULL,
         cargo TEXT NOT NULL,
-        salario_base INTEGER NOT NULL,
-        salario_real INTEGER NOT NULL,
+        salario_base REAL NOT NULL,
+        salario_real REAL NOT NULL,
         fecha_contratacion DATE NOT NULL,
         id_admin INTEGER,
         FOREIGN KEY (id_admin) REFERENCES Administrador(id_admin)
@@ -109,5 +127,13 @@ with engine.connect() as conn:
     )
     """))
     conn.commit()
-    print("Base de datos creada")
+    """
+    rows = conn.execute(text("SELECT * FROM Administrador")).fetchall()
+
+    print("ADMINS:", rows)
+    """
+    if not db_existed:
+        print("Base de datos creada por primera vez")
+    else:
+        print("Base de datos ya existía")
 
