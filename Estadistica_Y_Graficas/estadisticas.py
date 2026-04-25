@@ -283,18 +283,19 @@ def ranking_cantantes_por_actividad(id_admin: int) -> list:
 
 def distribucion_conciertos_por_continente(id_admin: int) -> list:
     """
-    Agrupa los conciertos por nacionalidad del cantante para ver
-    qué países concentran más actividad musical en sus artistas.
+    Agrupa los conciertos por continente donde se celebran
+    (no por nacionalidad del cantante) para ver en qué
+    parte del mundo hay más actividad musical.
     """
 
     df = query(f"""
-        SELECT nacionalidad AS continente,
+        SELECT continente,
                COUNT(*) AS total_conciertos,
-               COUNT(DISTINCT Cantante) AS cantantes_distintos,
+               COUNT(DISTINCT cantante) AS cantantes_distintos,
                COUNT(DISTINCT recinto) AS recintos_distintos
         FROM Conciertos
         WHERE id_admin = {id_admin}
-        GROUP BY nacionalidad
+        GROUP BY continente
         ORDER BY total_conciertos DESC
     """)
 
