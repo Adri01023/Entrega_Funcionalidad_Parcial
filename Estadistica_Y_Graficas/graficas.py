@@ -449,7 +449,7 @@ def grafico_distribucion_por_continente(datos: list) -> bytes:
 def grafico_recintos_mas_demandados(datos: list) -> bytes:
     """
     Barras horizontales con los recintos que más conciertos
-    acogen. El color diferencia América de Europa.
+    acogen. El color diferencia dinámicamente por país.
 
     Parámetros:
         datos → resultado de recintos_mas_demandados()
@@ -458,26 +458,33 @@ def grafico_recintos_mas_demandados(datos: list) -> bytes:
     df = pd.DataFrame(datos)
     df = df.sort_values("total_conciertos", ascending=True)
 
-    # Color según continente
-    colores = ["steelblue" if p == "Estados Unidos" else "orange"
-               for p in df["pais"]]
+    # Asignamos un color distinto a cada país dinámicamente
+    # para que todos los países tengan su propio color
+    paises_unicos = df["pais"].unique()
+    paleta = ["steelblue", "orange", "green", "red",
+              "purple", "brown", "pink", "gray",
+              "cyan", "magenta"]
+    color_por_pais = {pais: paleta[i % len(paleta)]
+                      for i, pais in enumerate(paises_unicos)}
+    colores = [color_por_pais[pais] for pais in df["pais"]]
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(12, 7))
 
-    ax.barh(df["recinto"], df["total_conciertos"], color=colores)
+    barras = ax.barh(df["recinto"], df["total_conciertos"], color=colores)
 
-    # Añadimos el número de cantantes distintos como texto
-    for i, (conciertos, cantantes) in enumerate(
-            zip(df["total_conciertos"], df["cantantes_distintos"])):
-        ax.text(conciertos + 0.1, i,
-                f"{conciertos} conciertos ({cantantes} artistas)",
+    # Número de conciertos y artistas al final de cada barra
+    for barra, cantantes in zip(barras, df["cantantes_distintos"]):
+        ax.text(barra.get_width() + 0.3,
+                barra.get_y() + barra.get_height() / 2,
+                f"{int(barra.get_width())} conciertos ({cantantes} artistas)",
                 va="center", fontsize=8)
 
     ax.set_title("Top 10 recintos más demandados")
     ax.set_xlabel("Total conciertos")
 
-    leyenda = [Patch(color="steelblue", label="Estados Unidos"),
-               Patch(color="orange", label="Reino Unido")]
+    # Leyenda con todos los países presentes en el top 10
+    leyenda = [Patch(color=color_por_pais[pais], label=pais)
+               for pais in paises_unicos]
     ax.legend(handles=leyenda, loc="lower right")
 
     return guardar_grafico()
