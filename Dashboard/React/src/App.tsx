@@ -1148,7 +1148,18 @@ function App() {
     );
 
     if (!response.ok) {
-      throw new Error("Error enviando fichero al backend");
+      let errorMsg = "Fichero no válido";
+
+      try {
+        const errorData = await response.json();
+        if (errorData.detail) {
+          errorMsg = errorData.detail;
+        }
+      } catch {
+        errorMsg = `Error al procesar el fichero (código ${response.status})`;
+      }
+
+      throw new Error(errorMsg);
     }
 
     return await response.json();

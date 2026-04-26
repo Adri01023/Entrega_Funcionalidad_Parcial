@@ -45,7 +45,14 @@ body[data-mode="dia"] {
     --input-bg: #ffffff;
 }
 
-h1, h2, h3, p {
+html {
+    background-color: var(--bg-main);
+}
+
+h1,
+h2,
+h3,
+p {
     color: var(--text-main);
 }
 
@@ -94,8 +101,8 @@ h1, h2, h3, p {
 /*Fin variables*/
 
 .disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 body {
@@ -211,9 +218,13 @@ body,
     padding: 10px;
 }
 
-.search-bar {grid-area: search-bar;}
+.search-bar {
+    grid-area: search-bar;
+}
 
-.user-panel {grid-area: user-panel;}
+.user-panel {
+    grid-area: user-panel;
+}
 
 .main-content {
     grid-area: main-content;
@@ -223,6 +234,7 @@ body,
     align-items: center;
     min-height: 0;
     height: 100%;
+    overflow-y: auto;
 }
 
 h1 {
@@ -246,98 +258,100 @@ h1 {
 /* Overlay login */
 
 .login-button {
-  padding: 10px 14px;
+    padding: 10px 14px;
 
-  background-color: var(--btn-bg);
-  color: var(--text-main);
+    background-color: var(--btn-bg);
+    color: var(--text-main);
 
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
 
-  cursor: pointer;
-  transition: all 0.2s ease;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 
 .login-button {
-  background-color: var(--accent);
-  border: none;
-  color: white;
+    background-color: var(--accent);
+    border: none;
+    color: white;
 }
 
 .login-button:hover {
-  background-color: #3d5ce0; /* ligeramente más oscuro */
+    background-color: #3d5ce0;
+    /* ligeramente más oscuro */
 }
 
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
 
-  background: rgba(0, 0, 0, 0.6);
+    background: rgba(0, 0, 0, 0.6);
 
-  display: flex;
-  justify-content: center;
-  align-items: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 
-  z-index: 9999;
+    z-index: 9999;
 
-  backdrop-filter: blur(4px); /* 👈 efecto pro */
+    backdrop-filter: blur(4px);
+    /* 👈 efecto pro */
 }
 
 .modal-login {
-  background-color: var(--bg-card);
-  color: var(--text-main);
+    background-color: var(--bg-card);
+    color: var(--text-main);
 
-  padding: 30px;
-  border-radius: 12px;
-  width: 300px;
+    padding: 30px;
+    border-radius: 12px;
+    width: 300px;
 
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 
-  border: 1px solid var(--border-color);
+    border: 1px solid var(--border-color);
 }
 
 .modal-login input {
-  padding: 8px;
-  border-radius: 6px;
+    padding: 8px;
+    border-radius: 6px;
 
-  background-color: var(--input-bg);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
+    background-color: var(--input-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
 }
 
 .modal-login button {
-  padding: 10px;
-  cursor: pointer;
+    padding: 10px;
+    cursor: pointer;
 
-  background-color: var(--btn-bg);
-  color: var(--text-main);
-  border: none;
-  border-radius: 6px;
+    background-color: var(--btn-bg);
+    color: var(--text-main);
+    border: none;
+    border-radius: 6px;
 
-  transition: 0.2s;
+    transition: 0.2s;
 }
 
 .modal-login button:hover {
-  background-color: var(--btn-hover);
+    background-color: var(--btn-hover);
 }
 
 .modal-login .secondary {
-  background-color: transparent;
-  border: 1px solid var(--border-color);
+    background-color: transparent;
+    border: 1px solid var(--border-color);
 }
 
 .modal-login .secondary:hover {
-  background-color: var(--bg-hover);
+    background-color: var(--bg-hover);
 }
 
 .login-button {
-  padding: 10px;
-  cursor: pointer;
+    padding: 10px;
+    cursor: pointer;
 }
 
 /* Clases del apartado del historial */
@@ -421,7 +435,7 @@ h1 {
     cursor: pointer;
 }
 
-.upload-button:hover{
+.upload-button:hover {
     background-color: var(--btn-hover);
 }
 
@@ -457,6 +471,7 @@ h1 {
         opacity: 0;
         transform: translateY(4px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -468,7 +483,8 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: center;
-    aspect-ratio: 100%;
+    aspect-ratio: 1 / 1;
+    max-height: 60vh;
     width: 100%;
     padding: 10px;
     border-radius: 8px;
@@ -477,7 +493,7 @@ h1 {
 
 .graph img {
     width: 100%;
-    height: 100%;
+
     object-fit: contain;
     border-radius: 8px;
 }
@@ -622,84 +638,84 @@ h1 {
 
 /* PANEL ADMIN */
 .admin-panel {
-  margin-top: 30px;
-  padding: 20px;
-  border-radius: 16px;
-  background: var(--card-bg);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    margin-top: 30px;
+    padding: 20px;
+    border-radius: 16px;
+    background: var(--card-bg);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .admin-panel h2 {
-  margin-bottom: 15px;
-  font-size: 1.4rem;
+    margin-bottom: 15px;
+    font-size: 1.4rem;
 }
 
 /* FORMULARIO */
 .admin-form {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
 /* INPUTS */
 .admin-form input {
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
-  background: var(--input-bg);
-  color: var(--text-color);
-  outline: none;
-  transition: 0.2s;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text-color);
+    outline: none;
+    transition: 0.2s;
 }
 
 .admin-form input:focus {
-  border-color: #4f8cff;
-  box-shadow: 0 0 0 2px rgba(79, 140, 255, 0.2);
+    border-color: #4f8cff;
+    box-shadow: 0 0 0 2px rgba(79, 140, 255, 0.2);
 }
 
 /* BOTONES */
 .admin-buttons {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
 }
 
 .admin-buttons button {
-  flex: 1;
-  padding: 10px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  transition: 0.2s;
-  font-weight: 500;
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: 0.2s;
+    font-weight: 500;
 }
 
 /* BOTÓN PRINCIPAL */
 .admin-buttons .primary {
-  background: #4f8cff;
-  color: white;
+    background: #4f8cff;
+    color: white;
 }
 
 .admin-buttons .primary:hover {
-  background: #3a6fd9;
+    background: #3a6fd9;
 }
 
 /* BOTÓN SECUNDARIO */
 .admin-buttons .secondary {
-  background: transparent;
-  border: 1px solid var(--border-color);
-  color: var(--text-color);
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
 }
 
 .admin-buttons .secondary:hover {
-  background: rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 /* MENSAJE */
 .admin-message {
-  margin-top: 12px;
-  font-size: 0.9rem;
-  color: #27a308;
+    margin-top: 12px;
+    font-size: 0.9rem;
+    color: #27a308;
 }
 
 /*Solo se aplica cuando tenga el modo dia seleccionado como atributo en el body*/
