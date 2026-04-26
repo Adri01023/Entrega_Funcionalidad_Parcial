@@ -294,6 +294,14 @@ def grafico_antiguedad_por_cargo(datos: list) -> bytes:
     """
 
     df = pd.DataFrame(datos)
+
+    if df.empty:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.text(0.5, 0.5, "No hay datos disponibles",
+                ha="center", va="center", fontsize=14, color="gray")
+        ax.axis("off")
+        return guardar_grafico()
+
     df = df.sort_values("antiguedad_media", ascending=True)
 
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -301,21 +309,13 @@ def grafico_antiguedad_por_cargo(datos: list) -> bytes:
     barras = ax.barh(df["nombre_cargo"], df["antiguedad_media"],
                      color="steelblue", alpha=0.8)
 
-    # Barras de error que muestran el rango min-max
-    # xerr necesita la distancia desde la media, no el valor absoluto
-    error_izq = df["antiguedad_media"] - df["antiguedad_minima"]
-    error_der = df["antiguedad_maxima"] - df["antiguedad_media"]
-
-
-
-    # Valor exacto al final de cada barra
     for barra, valor in zip(barras, df["antiguedad_media"]):
         ax.text(barra.get_width() + 0.1,
                 barra.get_y() + barra.get_height() / 2,
                 f"{valor} años", va="center", fontsize=9)
 
-    ax.set_title("Antigüedad media por cargo\n(con rango mínimo-máximo)")
-    ax.set_xlabel("Antigüedad (años)")
+    ax.set_title("Antiguedad media por cargo\n(con rango minimo-maximo)")
+    ax.set_xlabel("Antiguedad (años)")
 
     return guardar_grafico()
 

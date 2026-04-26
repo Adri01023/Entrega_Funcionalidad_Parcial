@@ -209,22 +209,24 @@ def antiguedad_media_por_cargo(id_admin: int) -> list:
     """
 
     df = query(f"""
-        SELECT cargo AS nombre_cargo, fecha_contratacion
-        FROM Empleados
-        WHERE id_admin = {id_admin}
-    """)
+            SELECT cargo AS nombre_cargo, fecha_contratacion
+            FROM Empleados
+            WHERE id_admin = {id_admin}
+        """)
 
-    df["fecha_contratacion"] = pd.to_datetime(df["fecha_contratacion"])
+    # Especificamos el formato exacto para evitar el error
+    df["fecha_contratacion"] = pd.to_datetime(df["fecha_contratacion"],
+                                              format="mixed")
 
     hoy = pd.Timestamp.today()
-    df["antiguedad_años"] = ((hoy - df["fecha_contratacion"])
+    df["antiguedad_anos"] = ((hoy - df["fecha_contratacion"])
                              .dt.days / 365.25).round(2)
 
-    resumen = df.groupby("nombre_cargo")["antiguedad_años"].agg(
-        antiguedad_media  = "mean",
-        antiguedad_maxima = "max",
-        antiguedad_minima = "min",
-        total_empleados   = "count"
+    resumen = df.groupby("nombre_cargo")["antiguedad_anos"].agg(
+        antiguedad_media="mean",
+        antiguedad_maxima="max",
+        antiguedad_minima="min",
+        total_empleados="count"
     ).round(2)
 
     return resumen.reset_index().to_dict(orient="records")
@@ -522,7 +524,6 @@ def impacto_actores_en_recaudacion(id_admin: int) -> list:
         FROM Cine
         WHERE id_admin = {id_admin}
         GROUP BY actor_protagonista
-        HAVING total_peliculas >= 2
         ORDER BY recaudacion_media DESC
     """)
 
