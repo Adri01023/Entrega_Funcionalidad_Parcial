@@ -4,9 +4,8 @@ import "./dashboard.css";
 import * as XLSX from "xlsx";
 
 // Pendiente mover a otros modulos e importar componentes. Crear hooks
-// https://www.w3schools.com/react/react_hooks.asp 
-// https://legacy.reactjs.org/docs/hooks-custom.html 
-
+// https://www.w3schools.com/react/react_hooks.asp
+// https://legacy.reactjs.org/docs/hooks-custom.html
 
 //Dirección de nuestro endpoint que nos permite la conexión entre frontend y backend
 const BASE_URL = "http://127.0.0.1:8000";
@@ -221,21 +220,14 @@ function App() {
     Record<string, boolean>
   >({});
 
-  useEffect(() => {
-    if (!usuario) {
-      // logout
-      setDatasetsDisponibles({});
-      setGraficosActivos([]);
-      setDatasetActivo(datasets[0].id);
-      return;
-    }
-
-    // login
-    setGraficosActivos([]);
-    setGraficoExpandido(null);
-  }, [usuario]);
+  //UseStates para mostar un mensaje al subir un fichero
+  const [mensajeUpload, setMensajeUpload] = useState<string>("");
+  const [tipoMensajeUpload, setTipoMensajeUpload] = useState<
+    "ok" | "error" | ""
+  >("");
 
   //Se cargan los datasets disponibles para mostrar en las gráficas
+  /*
   useEffect(() => {
     if (!usuario) return;
 
@@ -253,6 +245,70 @@ function App() {
         setGraficosActivos([]);
       })
       .catch(() => setDatasetsDisponibles({}));
+  }, [usuario]);
+  */
+
+  const cargarDatasets = async () => {
+    if (!usuario) return;
+
+    try {
+      const res = await fetch(
+        `${BASE_URL}/datasets-disponibles?id_admin=${usuario.id_admin}`,
+      );
+      const data = await res.json();
+
+      setDatasetsDisponibles(data);
+
+      const primeroDisponible = datasets.find((d) => data[d.id]);
+
+      if (primeroDisponible) {
+        setDatasetActivo(primeroDisponible.id);
+      }
+
+      setGraficosActivos([]);
+    } catch {
+      setDatasetsDisponibles({});
+    }
+  };
+
+  useEffect(() => {
+    cargarDatasets();
+  }, [usuario]);
+
+  //UseEffect para ocultar el mensaje pasado X ms
+  useEffect(() => {
+    if (!mensajeUpload) return;
+
+    const timeout = setTimeout(() => {
+      setMensajeUpload("");
+      setTipoMensajeUpload("");
+    }, 4000);
+
+    return () => clearTimeout(timeout);
+  }, [mensajeUpload]);
+
+  const getAdminId = () => {
+    if (!usuario) return null;
+
+    // Si es admin, usa su propio id
+    if (usuario.es_admin) return usuario.id_admin;
+
+    // Si es usuario normal, usa el id_admin asignado
+    return usuario.id_admin;
+  };
+
+  useEffect(() => {
+    if (!usuario) {
+      // logout
+      setDatasetsDisponibles({});
+      setGraficosActivos([]);
+      setDatasetActivo(datasets[0].id);
+      return;
+    }
+
+    // login
+    setGraficosActivos([]);
+    setGraficoExpandido(null);
   }, [usuario]);
 
   //check si admin
@@ -468,6 +524,8 @@ function App() {
       setNuevaPassword("");
       setMensajeUsuario("");
       setHistorial([]);
+      setGraficosActivos([]);
+      setGraficoExpandido(null);
 
       setMostrarLogin(false); //quitamos boton de login
     } catch (err: any) {
@@ -514,13 +572,31 @@ function App() {
   // Se guarda el archivo csv que sube el usuario, inicializado a null
   const [archivo, setArchivo] = useState<File | null>(null);
 
-  /* useState con persistencia a fichero JSON del historial */
+  /* useState con persistencia del historial */
   const [historial, setHistorial] = useState<HistorialItem[]>(() => {
     if (!usuario) return [];
 
-    const saved = localStorage.getItem(`historial_${usuario.id_admin}`);
+    const key = usuario.es_admin
+      ? `historial_admin_${usuario.id_admin}`
+      : `historial_user_${usuario.id_user}`;
+
+    const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : [];
   });
+
+  //Al cambiar de usuario se fuerza el reset
+  useEffect(() => {
+    setHistorial([]);
+
+    if (!usuario) return;
+
+    const key = usuario.es_admin
+      ? `historial_admin_${usuario.id_admin}`
+      : `historial_user_${usuario.id_user}`;
+
+    const saved = localStorage.getItem(key);
+    setHistorial(saved ? JSON.parse(saved) : []);
+  }, [usuario]);
 
   // Bool para luego ocultar los botones de la gráfica en caso de no haber datos disponibles
   const hayDatosDisponibles = Object.values(datasetsDisponibles).some(Boolean);
@@ -530,6 +606,12 @@ function App() {
     HistorialItem,
     { type: "grafica" }
   > | null>(null);
+
+  const getTipoArchivo = (ext: string) => {
+    if (ext === "json") return "JSON";
+    if (ext === "xls" || ext === "xlsx") return "EXCEL";
+    return "CSV";
+  };
 
   //Use effect cuando cambie el historial
   useEffect(() => {
@@ -559,10 +641,11 @@ function App() {
   useEffect(() => {
     if (!usuario) return;
 
-    localStorage.setItem(
-      `historial_${usuario.id_admin}`,
-      JSON.stringify(historial),
-    );
+    const key = usuario.es_admin
+      ? `historial_admin_${usuario.id_admin}`
+      : `historial_user_${usuario.id_user}`;
+
+    localStorage.setItem(key, JSON.stringify(historial));
   }, [historial, usuario]);
 
   /*
@@ -577,7 +660,7 @@ function App() {
   }, [usuario]);
 */
 
-//Al loggear o cerrar session volvemos a inicio y cleareamos la pantalla
+  //Al loggear o cerrar session volvemos a inicio y cleareamos la pantalla
   useEffect(() => {
     if (usuario) {
       // LOGIN
@@ -661,7 +744,8 @@ function App() {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        id_consultor: usuario.id_user || usuario.id_admin,
+        id_consultor: usuario.es_admin ? usuario.id_admin : usuario.id_user,
+        tipo_consultor: usuario.es_admin ? "admin" : "user",
         consulta: {
           type: "grafica",
           nombre: grafica.nombre,
@@ -701,8 +785,12 @@ function App() {
   useEffect(() => {
     if (!usuario) return;
 
+    setHistorial([]);
+
     fetch(
-      `${BASE_URL}/historial?id_consultor=${usuario.id_user || usuario.id_admin}`,
+      `${BASE_URL}/historial?id_consultor=${
+        usuario.es_admin ? usuario.id_admin : usuario.id_user
+      }&tipo_consultor=${usuario.es_admin ? "admin" : "user"}`,
     )
       .then((res) => res.json())
       .then((data) => {
@@ -779,11 +867,11 @@ function App() {
   // Objeto nativo de JS File
   // Para las promesas -> https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
   /**
-     * Lee un CSV y devuelve número de filas y columnas.
-     * Falla si el formato no es válido. 
-     * @param file - Fichero
-     * @returns - Sale si no es válido el fichero. O Resolve (Promises) si se completa con éxito.
-     */
+   * Lee un CSV y devuelve número de filas y columnas.
+   * Falla si el formato no es válido.
+   * @param file - Fichero
+   * @returns - Sale si no es válido el fichero. O Resolve (Promises) si se completa con éxito.
+   */
   const parseCSV = (file: File) =>
     // Se crea nueva promesa para la correcta ejecución de funciones asíncronas
     // Resolve y Reject son callbacks de exito y error en base al resultado de la ejecución del codigo
@@ -822,12 +910,12 @@ function App() {
       reader.readAsText(file);
     });
 
-    /**
-     *Lee un JSON (array de objetos) y devuelve número de filas y columnas.
-     * Falla si el formato no es válido. 
-     * @param file - Fichero
-     * @returns - Sale si no es válido el fichero. O Resolve (Promises) si se completa con éxito.
-     */
+  /**
+   *Lee un JSON (array de objetos) y devuelve número de filas y columnas.
+   * Falla si el formato no es válido.
+   * @param file - Fichero
+   * @returns - Sale si no es válido el fichero. O Resolve (Promises) si se completa con éxito.
+   */
   const parseJSON = (file: File) =>
     new Promise<{ lineas: number; columnas: string[] }>((resolve, reject) => {
       const reader = new FileReader();
@@ -857,12 +945,12 @@ function App() {
       reader.readAsText(file);
     });
 
-    /**
-     *Lee un archivo de Excel y devuelve número de filas y columnas.
-     * Falla si el formato no es válido. 
-     * @param file - Fichero
-     * @returns - Sale si no es válido el fichero. O Resolve (Promises) si se completa con éxito.
-     */
+  /**
+   *Lee un archivo de Excel y devuelve número de filas y columnas.
+   * Falla si el formato no es válido.
+   * @param file - Fichero
+   * @returns - Sale si no es válido el fichero. O Resolve (Promises) si se completa con éxito.
+   */
   const parseExcel = (file: File) =>
     new Promise<{ lineas: number; columnas: string[] }>((resolve, reject) => {
       const reader = new FileReader();
@@ -932,7 +1020,11 @@ function App() {
     if (!archivo) return; // condicion de salida si archivo está en null
 
     // Obtenemos la extensión del archivo para determinar cómo parsearlo
-    const extension = archivo.name.split(".").pop()?.toLowerCase();
+    const extension = archivo.name.split(".").pop()?.toLowerCase(); //puede ser null el archivo
+
+    if (!extension) {
+      throw new Error("No se pudo determinar la extensión");
+    }
 
     try {
       let result;
@@ -949,16 +1041,22 @@ function App() {
         throw new Error("Formato no soportado");
       }
 
+      if (!result) {
+        throw new Error("Error procesando el archivo");
+      }
+
       // después de parsear el fichero localmente
       await sendFileToBackend(archivo);
+      await cargarDatasets();
 
-      await fetch(`${BASE_URL}/historial`, {
+      const res = await fetch(`${BASE_URL}/historial`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          id_consultor: usuario.id_user || usuario.id_admin,
+          id_consultor: usuario.es_admin ? usuario.id_admin : usuario.id_user,
+          tipo_consultor: usuario.es_admin ? "admin" : "user",
           consulta: {
             type: "fichero",
             nombre: archivo.name,
@@ -969,6 +1067,10 @@ function App() {
           },
         }),
       });
+
+      if (!res.ok) {
+        throw new Error("Error guardando en historial");
+      }
 
       //crea un nuevo objeto de tipo HistorialItem para guardarlo
       const nuevaEntrada: HistorialItem = {
@@ -984,9 +1086,12 @@ function App() {
       // Se añade al historial previo la nueva entrada en un nuevo array
       // prev (haciendo spread) hace referencia al estado previo del historial
       setHistorial((prev) => [...prev, nuevaEntrada]);
+      setMensajeUpload("Archivo subido correctamente");
+      setTipoMensajeUpload("ok");
       setArchivo(null);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      setMensajeUpload(err.message || "Error al subir el archivo");
+      setTipoMensajeUpload("error");
     }
   };
 
@@ -996,14 +1101,20 @@ function App() {
 
     try {
       await fetch(
-        `${BASE_URL}/historial?id_consultor=${usuario.id_user || usuario.id_admin}`,
+        `${BASE_URL}/historial?id_consultor=${
+          usuario.es_admin ? usuario.id_admin : usuario.id_user
+        }&tipo_consultor=${usuario.es_admin ? "admin" : "user"}`,
         {
           method: "DELETE",
         },
       );
 
       setHistorial([]);
-      localStorage.removeItem(`historial_${usuario.id_admin}`);
+      const key = usuario.es_admin
+        ? `historial_admin_${usuario.id_admin}`
+        : `historial_user_${usuario.id_user}`;
+
+      localStorage.removeItem(key);
     } catch (err) {
       console.error("Error borrando historial", err);
     }
@@ -1016,6 +1127,8 @@ function App() {
   // false && algo → devuelve false (no renderiza nada)
 
   const sendFileToBackend = async (file: File) => {
+    const adminId = getAdminId();
+
     if (!adminId) {
       throw new Error("adminId no definido");
     }
@@ -1027,6 +1140,9 @@ function App() {
       `${BASE_URL}/subir-archivo?id_admin=${adminId}`,
       {
         method: "POST",
+        headers: {
+          id_admin: adminId,
+        },
         body: formData,
       },
     );
@@ -1224,7 +1340,7 @@ function App() {
                   <div className="graphs-container">
                     {graficosActivos.length === 0 ? (
                       <p>Selecciona una o más gráficas</p>
-                    ) : (
+                    ) : datasetsDisponibles[datasetActivo] ? (
                       graficosActivos.map((url) => (
                         <div key={url} className="graph">
                           <img
@@ -1235,6 +1351,8 @@ function App() {
                           />
                         </div>
                       ))
+                    ) : (
+                      <p>Dataset no disponible</p>
                     )}
                   </div>
                 </>
@@ -1284,7 +1402,7 @@ function App() {
                       </div>
 
                       <div className="file-right">
-                        <span>CSV</span>
+                        <span>{getTipoArchivo(item.extension)}</span>
                       </div>
                     </div>
                   );
@@ -1316,6 +1434,12 @@ function App() {
                 >
                   Subir archivo
                 </button>
+
+                {mensajeUpload && (
+                  <p className={`upload-message ${tipoMensajeUpload}`}>
+                    {mensajeUpload}
+                  </p>
+                )}
               </div>
             </>
           )}
@@ -1396,10 +1520,7 @@ function App() {
               className="modal-overlay"
               onClick={() => setMostrarLogin(false)}
             >
-              <div
-                className="modal-login"
-                onClick={(e) => e.stopPropagation()}
-              >
+              <div className="modal-login" onClick={(e) => e.stopPropagation()}>
                 <h2>Iniciar sesión</h2>
 
                 <input

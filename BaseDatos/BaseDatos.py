@@ -49,11 +49,13 @@ with engine.connect() as conn:
     conn.execute(text("""
         CREATE TABLE IF NOT EXISTS Historial (
             id_consulta INTEGER PRIMARY KEY AUTOINCREMENT,
-            id_consultor INTEGER NOT NULL,
+            id_user INTEGER,
+            id_admin INTEGER,
+            tipo_consultor TEXT NOT NULL,
             consulta TEXT NOT NULL,
             fecha DATE NOT NULL,
-            FOREIGN KEY (id_consultor) REFERENCES Usuario(id_user)
-                ON DELETE CASCADE ON UPDATE CASCADE
+            FOREIGN KEY (id_user) REFERENCES Usuario(id_user) ON DELETE CASCADE,
+            FOREIGN KEY (id_admin) REFERENCES Administrador(id_admin) ON DELETE CASCADE
         )
         """))
 

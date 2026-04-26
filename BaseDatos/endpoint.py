@@ -2,7 +2,7 @@ import traceback
 import hashlib
 import json
 
-from fastapi import FastAPI, Response, HTTPException, UploadFile, File, Depends, Query
+from fastapi import FastAPI, Response, HTTPException, UploadFile, Header, File, Depends, Query
 from sqlalchemy import text
 from datetime import datetime
 from pydantic import BaseModel
@@ -26,6 +26,7 @@ class AdminCreate(BaseModel):
 
 class HistorialCreate(BaseModel):
     id_consultor: int
+    tipo_consultor: str
     consulta: Any
 
 class LoginData(BaseModel):
@@ -52,9 +53,8 @@ app.add_middleware(
 )
 
 #Funciones
-#OBTENER ADMINISTRADOR ACTUAL (FALTA POR IMPLEMENTAR)
-def get_admin():
-    return 1
+def get_admin(id_admin: int = Query(...)):
+    return id_admin
 
  # Comprueba si existe al menos un administrador en la base de datos
 def existe_admin():
@@ -138,7 +138,11 @@ def detectar_tabla(columnas: list[str]) -> str:
         raise ValueError("Estructura no reconocida")
     
 def procesar_empleados(df):
-    df['fecha_contratacion'] = pd.to_datetime(df['fecha_contratacion'], errors='coerce')
+    df['fecha_contratacion'] = pd.to_datetime(
+        df['fecha_contratacion'],
+        format='%m/%d/%Y',
+        errors='coerce'
+    )
 
     if df['fecha_contratacion'].isnull().any():
         raise ValueError("Fechas inválidas en 'fecha_contratacion'")
@@ -159,6 +163,14 @@ def existe_dataset(tabla: str, id_admin: int) -> bool:
         ).fetchone()
 
         return result is not None
+    
+def obtener_tipo(tipo_consultor: str):
+    if tipo_consultor == "admin":
+        return "id_admin"
+    elif tipo_consultor == "user":
+        return "id_user"
+    else:
+        raise ValueError("tipo_consultor inválido")
 
 #Cominenzo de endpoints
 
@@ -293,12 +305,12 @@ async def importar_ficheros(
         # Normalizar nombres de columnas
         df.columns = df.columns.str.strip().str.lower()
 
+        #para visualizar en el servidor el archivo
         print(df.dtypes)
         print(df.head())
 
-        # Validación obligatoria
-        if 'id_admin' not in df.columns:
-            raise ValueError("El fichero debe incluir la columna 'id_admin'")
+        if 'id_admin' in df.columns:
+            df = df.drop(columns=['id_admin'])
 
         # Sobrescribir id_admin con el del usuario autenticado
         df['id_admin'] = id_admin
@@ -516,12 +528,24 @@ def guardar_historial(data: HistorialCreate):
             else data.consulta
         )
 
+        columna = obtener_tipo(data.tipo_consultor)
+
+        valores = {
+            "id_user": None,
+            "id_admin": None
+        }
+
+        valores[columna] = data.id_consultor
+
         with engine.begin() as conn:
             conn.execute(text("""
-                INSERT INTO Historial (id_consultor, consulta, fecha)
-                VALUES (:id_consultor, :consulta, :fecha)
-            """), {
-                "id_consultor": data.id_consultor,
+                INSERT INTO Historial (id_user, id_admin, tipo_consultor, consulta, fecha)
+                VALUES (:id_user, :id_admin, :tipo, :consulta, :fecha)
+            """), 
+            # ** desempaqueta el diccionario de valores
+            {
+                **valores,
+                "tipo": data.tipo_consultor,
                 "consulta": consulta_str,
                 "fecha": datetime.utcnow()
             })
@@ -533,12 +557,15 @@ def guardar_historial(data: HistorialCreate):
 
 @app.get("/historial")
  # Obtiene el historial del usuario ordenado por fecha descendente
-def obtener_historial(id_consultor: int):
+def obtener_historial(id_consultor: int, tipo_consultor: str):
+
+    columna = obtener_tipo(tipo_consultor)
+
     with engine.connect() as conn:
-        result = conn.execute(text("""
+        result = conn.execute(text(f"""
             SELECT consulta, fecha
             FROM Historial
-            WHERE id_consultor = :id
+            WHERE {columna} = :id
             ORDER BY fecha DESC
         """), {"id": id_consultor}).fetchall()
 
@@ -562,11 +589,12 @@ def obtener_historial(id_consultor: int):
 
 @app.delete("/historial")
 # Elimina todo el historial asociado a un usuario en la BBDD.
-def borrar_historial(id_consultor: int):
+def borrar_historial(id_consultor: int, tipo_consultor: str):
+    columna = obtener_tipo(tipo_consultor)
     with engine.begin() as conn:
-        conn.execute(text("""
+        conn.execute(text(f"""
             DELETE FROM Historial
-            WHERE id_consultor = :id
+            WHERE {columna} = :id
         """), {"id": id_consultor})
 
     return {"msg": "historial eliminado"}
