@@ -9,10 +9,9 @@ import io
 matplotlib.use("Agg")
 
 
-def guardar_grafico() -> bytes:
+def guardar_grafico():
     """
     Guarda el gráfico actual en memoria y lo devuelve como bytes.
-    Función interna, no la llama Diego directamente.
     """
     buffer = io.BytesIO()
     plt.savefig(buffer, format="png", bbox_inches="tight")
@@ -23,7 +22,7 @@ def guardar_grafico() -> bytes:
 
 # FÚTBOL
 
-def grafico_rendimiento_posicion(datos: list) -> bytes:
+def grafico_rendimiento_posicion(datos):
     """
     Barras agrupadas con la media de goles y asistencias
     por posición.
@@ -60,7 +59,7 @@ def grafico_rendimiento_posicion(datos: list) -> bytes:
     return guardar_grafico()
 
 
-def grafico_ranking_goleadores(datos: list) -> bytes:
+def grafico_ranking_goleadores(datos):
     """
     Barras horizontales con los top 10 goleadores.
     El color diferencia goles de asistencias.
@@ -93,7 +92,7 @@ def grafico_ranking_goleadores(datos: list) -> bytes:
     return guardar_grafico()
 
 
-def grafico_estadisticas_por_equipo(datos: list) -> bytes:
+def grafico_estadisticas_por_equipo(datos):
     """
     Barras agrupadas con goles, asistencias y tarjetas
     por equipo. Permite comparar el rendimiento colectivo.
@@ -140,7 +139,7 @@ def grafico_estadisticas_por_equipo(datos: list) -> bytes:
     return guardar_grafico()
 
 
-def grafico_eficiencia_goleadora(datos: list) -> bytes:
+def grafico_eficiencia_goleadora(datos):
     """
     Barras horizontales con los goles por partido de cada jugador.
     Solo muestra los top 10 más eficientes.
@@ -177,7 +176,7 @@ def grafico_eficiencia_goleadora(datos: list) -> bytes:
 
 # EMPLEADOS
 
-def grafico_distribucion_salarial(datos: list) -> bytes:
+def grafico_distribucion_salarial(datos):
     """
     Barras para media y mediana por cargo con segundo eje
     para la desviación típica, que tiene escala diferente.
@@ -220,7 +219,7 @@ def grafico_distribucion_salarial(datos: list) -> bytes:
     return guardar_grafico()
 
 
-def grafico_ranking_salarios(datos: list) -> bytes:
+def grafico_ranking_salarios(datos):
     """
     Barras horizontales con todos los empleados ordenados
     por salario, con colores distintos por cargo.
@@ -253,7 +252,7 @@ def grafico_ranking_salarios(datos: list) -> bytes:
     return guardar_grafico()
 
 
-def grafico_comparativa_vs_base(datos: list) -> bytes:
+def grafico_comparativa_vs_base(datos):
     """
     Barras horizontales con la diferencia porcentual entre
     salario real y base. Verde = cobra más, rojo = cobra menos.
@@ -283,7 +282,7 @@ def grafico_comparativa_vs_base(datos: list) -> bytes:
 
     return guardar_grafico()
 
-def grafico_antiguedad_por_cargo(datos: list) -> bytes:
+def grafico_antiguedad_por_cargo(datos):
     """
     Barras horizontales con la antigüedad media por cargo.
     Incluye barras de error para mostrar el rango
@@ -320,7 +319,7 @@ def grafico_antiguedad_por_cargo(datos: list) -> bytes:
     return guardar_grafico()
 
 
-def grafico_distribucion_empleados(datos: list) -> bytes:
+def grafico_distribucion_empleados(datos):
     """
     Doble gráfico: tarta con el porcentaje de empleados
     por cargo y barras con el coste total por cargo.
@@ -373,7 +372,7 @@ def grafico_distribucion_empleados(datos: list) -> bytes:
 
 # CONCIERTOS
 
-def grafico_ranking_cantantes(datos: list) -> bytes:
+def grafico_ranking_cantantes(datos):
     """
     Barras apiladas con el número de conciertos y giras
     por cantante. Permite ver quién tiene más actividad.
@@ -407,7 +406,7 @@ def grafico_ranking_cantantes(datos: list) -> bytes:
     return guardar_grafico()
 
 
-def grafico_distribucion_por_continente(datos: list) -> bytes:
+def grafico_distribucion_por_continente(datos):
     """
     Gráfico de tarta que muestra el porcentaje de conciertos
     por continente. Incluye número de cantantes y recintos.
@@ -446,7 +445,7 @@ def grafico_distribucion_por_continente(datos: list) -> bytes:
     return guardar_grafico()
 
 
-def grafico_recintos_mas_demandados(datos: list) -> bytes:
+def grafico_recintos_mas_demandados(datos):
     """
     Barras horizontales con los recintos que más conciertos
     acogen. El color diferencia dinámicamente por país.
@@ -490,7 +489,7 @@ def grafico_recintos_mas_demandados(datos: list) -> bytes:
     return guardar_grafico()
 
 
-def grafico_ocupacion_por_cantante(datos: list) -> bytes:
+def grafico_ocupacion_por_cantante(datos):
     """
     Barras horizontales con el porcentaje medio de ocupación
     por cantante. Verde si supera el 80%, naranja si supera
@@ -538,7 +537,7 @@ def grafico_ocupacion_por_cantante(datos: list) -> bytes:
 
     return guardar_grafico()
 
-def grafico_rentabilidad_giras(datos: list) -> bytes:
+def grafico_rentabilidad_giras(datos):
     """
     Barras horizontales con los conciertos medios por gira
     de cada cantante. El color es relativo a la media del
@@ -597,7 +596,7 @@ def grafico_rentabilidad_giras(datos: list) -> bytes:
 
 # PELÍCULAS
 
-def grafico_rentabilidad_peliculas(datos: list) -> bytes:
+def grafico_rentabilidad_peliculas(datos):
     """
     Gráfico de barras horizontales con el ratio de rentabilidad
     de cada película. El color indica si es rentable o no.
@@ -643,7 +642,7 @@ def grafico_rentabilidad_peliculas(datos: list) -> bytes:
     return guardar_grafico()
 
 
-def grafico_generos_rentables(datos: list) -> bytes:
+def grafico_generos_rentables(datos):
     """
     Gráfico de barras agrupadas con recaudación media y
     presupuesto medio por género, con segundo eje para
@@ -693,7 +692,7 @@ def grafico_generos_rentables(datos: list) -> bytes:
     return guardar_grafico()
 
 
-def grafico_directores_taquilleros(datos: list) -> bytes:
+def grafico_directores_taquilleros(datos):
     """
     Gráfico de barras horizontales con los directores ordenados
     por recaudación media. El tamaño del punto indica el número
@@ -745,7 +744,7 @@ def grafico_directores_taquilleros(datos: list) -> bytes:
 
     return guardar_grafico()
 
-def grafico_peliculas_mayor_perdida(datos: list) -> bytes:
+def grafico_peliculas_mayor_perdida(datos):
     """
     Barras horizontales con las películas que más dinero
     han perdido en términos absolutos.
@@ -786,7 +785,7 @@ def grafico_peliculas_mayor_perdida(datos: list) -> bytes:
     return guardar_grafico()
 
 
-def grafico_impacto_actores(datos: list) -> bytes:
+def grafico_impacto_actores(datos):
     """
     Barras horizontales con los actores ordenados por
     recaudación media de sus películas. El color indica

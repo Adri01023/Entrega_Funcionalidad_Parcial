@@ -17,7 +17,7 @@ def query(sql: str) -> pd.DataFrame:
 
 # FÚTBOL
 
-def rendimiento_vs_media_posicion(id_admin: int) -> list:
+def rendimiento_vs_media_posicion(id_admin):
     """
     Compara los goles y asistencias de cada jugador
     con la media de los jugadores de su misma posición.
@@ -42,7 +42,7 @@ def rendimiento_vs_media_posicion(id_admin: int) -> list:
     return df.to_dict(orient="records")
 
 
-def ranking_goleadores(id_admin: int) -> list:
+def ranking_goleadores(id_admin):
     """
     Devuelve el ranking de jugadores ordenados por goles totales.
     Incluye su posición, equipo y asistencias para tener
@@ -64,7 +64,7 @@ def ranking_goleadores(id_admin: int) -> list:
     return df.to_dict(orient="records")
 
 
-def estadisticas_por_equipo(id_admin: int) -> list:
+def estadisticas_por_equipo(id_admin):
     """
     Agrupa las estadísticas de todos los jugadores por equipo.
     Permite ver qué equipo es más goleador, más disciplinado
@@ -90,7 +90,7 @@ def estadisticas_por_equipo(id_admin: int) -> list:
     return df.to_dict(orient="records")
 
 
-def eficiencia_goleadora(id_admin: int) -> list:
+def eficiencia_goleadora(id_admin):
     """
     Calcula los goles por partido jugado de cada jugador.
     Solo incluye jugadores con al menos 5 partidos para
@@ -116,7 +116,7 @@ def eficiencia_goleadora(id_admin: int) -> list:
 
 # EMPLEADOS
 
-def distribucion_salarial_por_cargo(id_admin: int) -> list:
+def distribucion_salarial_por_cargo(id_admin):
     """
     Calcula media, mediana y desviación típica del salario
     real agrupado por cargo. El coeficiente de variación
@@ -146,7 +146,7 @@ def distribucion_salarial_por_cargo(id_admin: int) -> list:
     return resumen.reset_index().to_dict(orient="records")
 
 
-def ranking_salarial(id_admin: int) -> list:
+def ranking_salarial(id_admin):
     """
     Devuelve todos los empleados ordenados de mayor a menor
     salario, incluyendo su cargo y posición en el ranking
@@ -173,7 +173,7 @@ def ranking_salarial(id_admin: int) -> list:
     return df.to_dict(orient="records")
 
 
-def comparativa_salario_real_vs_base(id_admin: int) -> list:
+def comparativa_salario_real_vs_base(id_admin):
     """
     Compara el salario de cada empleado con la media salarial
     de su cargo. Detecta quién cobra significativamente
@@ -201,7 +201,7 @@ def comparativa_salario_real_vs_base(id_admin: int) -> list:
     return df.to_dict(orient="records")
 
 
-def antiguedad_media_por_cargo(id_admin: int) -> list:
+def antiguedad_media_por_cargo(id_admin):
     """
     Calcula la antigüedad media en años de los empleados
     agrupada por cargo. Permite ver si los cargos más altos
@@ -232,7 +232,7 @@ def antiguedad_media_por_cargo(id_admin: int) -> list:
     return resumen.reset_index().to_dict(orient="records")
 
 
-def distribucion_empleados_por_cargo(id_admin: int) -> list:
+def distribucion_empleados_por_cargo(id_admin):
     """
     Cuenta cuántos empleados hay en cada cargo y qué
     porcentaje representa sobre el total de la plantilla.
@@ -259,7 +259,7 @@ def distribucion_empleados_por_cargo(id_admin: int) -> list:
 
 # CONCIERTOS
 
-def ranking_cantantes_por_actividad(id_admin: int) -> list:
+def ranking_cantantes_por_actividad(id_admin):
     """
     Ranking de cantantes por número de conciertos realizados
     y duración total de sus conciertos.
@@ -283,7 +283,7 @@ def ranking_cantantes_por_actividad(id_admin: int) -> list:
     return df.to_dict(orient="records")
 
 
-def distribucion_conciertos_por_continente(id_admin: int) -> list:
+def distribucion_conciertos_por_continente(id_admin):
     """
     Agrupa los conciertos por continente donde se celebran
     (no por nacionalidad del cantante) para ver en qué
@@ -307,7 +307,7 @@ def distribucion_conciertos_por_continente(id_admin: int) -> list:
     return df.to_dict(orient="records")
 
 
-def recintos_mas_demandados(id_admin: int) -> list:
+def recintos_mas_demandados(id_admin):
     """
     Ranking de recintos que acogen más conciertos.
     Incluye el país y los cantantes distintos que han
@@ -330,7 +330,7 @@ def recintos_mas_demandados(id_admin: int) -> list:
     return df.to_dict(orient="records")
 
 
-def ocupacion_media_por_cantante(id_admin: int) -> list:
+def ocupacion_media_por_cantante(id_admin):
     """
     Calcula el porcentaje de ocupación medio por cantante.
     (entradas_vendidas / max_entradas * 100)
@@ -354,7 +354,7 @@ def ocupacion_media_por_cantante(id_admin: int) -> list:
     return df.to_dict(orient="records")
 
 
-def rentabilidad_por_gira(id_admin: int) -> list:
+def rentabilidad_por_gira(id_admin):
     """
     Calcula el ratio de conciertos por gira de cada cantante.
     Un ratio alto significa que exprime bien cada gira,
@@ -386,7 +386,7 @@ def rentabilidad_por_gira(id_admin: int) -> list:
 
 # PELÍCULAS
 
-def rentabilidad_peliculas(id_admin: int) -> list:
+def rentabilidad_peliculas(id_admin):
     """
     Calcula el ratio de rentabilidad de cada película.
     Ratio = recaudacion / presupuesto
@@ -420,7 +420,7 @@ def rentabilidad_peliculas(id_admin: int) -> list:
                           ascending=False).to_dict(orient="records")
 
 
-def generos_mas_rentables(id_admin: int) -> list:
+def generos_mas_rentables(id_admin):
     """
     Calcula la recaudación media, el presupuesto medio y el
     ratio de rentabilidad medio agrupado por género.
@@ -450,7 +450,7 @@ def generos_mas_rentables(id_admin: int) -> list:
     return df.to_dict(orient="records")
 
 
-def directores_mas_taquilleros(id_admin: int) -> list:
+def directores_mas_taquilleros(id_admin):
     """
     Ranking de directores por recaudación media de sus películas.
     Incluye el número de películas dirigidas para que el dato
@@ -481,7 +481,7 @@ def directores_mas_taquilleros(id_admin: int) -> list:
     return df.to_dict(orient="records")
 
 
-def peliculas_mayor_perdida(id_admin: int) -> list:
+def peliculas_mayor_perdida(id_admin):
     """
     Identifica las películas con mayor pérdida económica
     en términos absolutos (euros perdidos).
@@ -508,7 +508,7 @@ def peliculas_mayor_perdida(id_admin: int) -> list:
     return df.to_dict(orient="records")
 
 
-def impacto_actores_en_recaudacion(id_admin: int) -> list:
+def impacto_actores_en_recaudacion(id_admin):
     """
     Calcula la recaudación media de las películas en las que
     ha participado cada actor protagonista.
