@@ -1,4 +1,4 @@
-# Entrega de Funcionalidad Parcial
+# Entrega de Funcionalidad Completa
 
 Parte Estadística y Gráficas:
 
@@ -8,8 +8,6 @@ Estructura:
   
   graficas.py -> contiene el código para la creación de diversos gráficos.
   
-  main.py -> aplica dichas formulas estadísticas a los datos contenidos en la base de datos baseDatos.db (debe estar en el mismo directorio al ejecutarse este archivo además genera los reespectivos gráficos en formato png
-
 
 Parte de Dashboard (frontend):
 
